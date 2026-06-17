@@ -18,9 +18,15 @@ Author: Youhei Okubo (https://zenn.dev/youheiokubo)
 - Filter: `hxse_schemas`
 - Filter types: search, taxonomy, meta, date, relation
 - UI types: select, radio, checkbox, range
-- Pagination modes: pager, loadmore, infinite
+- Display modes: grid (default), list, table, custom
+- Grid columns: controlled via `columns` key (default: 3)
+- Table headers: customizable via `table_columns` key
+- Display switcher: `display_switcher: ['grid','list','table']`
+- Tabs: `tabs` key for tab-based filtering
+- Pagination modes: pager, loadmore
 - URL parameter sync with browser history support
 - Multiple instances on one page supported via `prefix`
 - htmx bundled (no jQuery required)
+- Assets loaded only on pages with [hxse] shortcode
 - No database for schema — code only
 - AI-friendly: simple consistent schema structure

@@ -175,6 +175,30 @@ First item is the default sort order.
 'display' => 'custom',  // Use custom template (set 'template' key)
 ```
 
+### columns (grid column count)
+
+Control the number of grid columns via CSS variable injection. Default is 3.
+
+```php
+'columns' => 2,  // 2-column grid
+'columns' => 4,  // 4-column grid
+'columns' => 0,  // Use CSS default (3 columns)
+```
+
+### table_columns (custom table headers)
+
+Define table column headers. If omitted, defaults to date / title / category.
+
+```php
+'table_columns' => [
+    [ 'key' => 'date',     'label' => '投稿日' ],
+    [ 'key' => 'title',    'label' => '記事タイトル' ],
+    [ 'key' => 'category', 'label' => 'カテゴリー' ],
+],
+```
+
+> **Note:** `key` is for identification only. The actual cell content is rendered by `table-row.php` template. To show different columns, override `your-theme/hxse/table-row.php`.
+
 ### Custom template
 
 Override in theme:
