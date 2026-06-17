@@ -22,7 +22,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 		<?php endif; ?>
 
 		<div class="hxse-post-body">
-			<h2 class="hxse-post-title"><?php the_title(); ?></h2>
+			<h2 class="hxse-post-title"><?php echo esc_html( get_the_title() ); ?></h2>
 			<p class="hxse-post-date"><?php echo esc_html( get_the_date() ); ?></p>
 			<?php
 			$hxse_excerpt = get_the_excerpt();

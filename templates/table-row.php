@@ -13,7 +13,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	</td>
 	<td class="hxse-table-cell hxse-table-cell--title">
 		<a href="<?php the_permalink(); ?>" class="hxse-table-link">
-			<?php the_title(); ?>
+			<?php echo esc_html( get_the_title() ); ?>
 		</a>
 	</td>
 	<td class="hxse-table-cell hxse-table-cell--cat">
