@@ -43,15 +43,6 @@ function hxse_shortcode( $atts ) {
 	$prefix         = isset( $schema['url_params']['prefix'] ) ? sanitize_key( $schema['url_params']['prefix'] ) : '';
 	$page           = isset( $current_params['page'] ) ? max( 1, absint( $current_params['page'] ) ) : 1;
 
-	// URLのdisplayパラメータをスキーマに反映（display_switcher使用時）
-	if ( ! empty( $schema['display_switcher'] ) && isset( $current_params['display'] ) ) {
-		$allowed_modes = array( 'grid', 'list', 'table', 'custom' );
-		$url_display   = sanitize_key( $current_params['display'] );
-		if ( in_array( $url_display, $allowed_modes, true ) ) {
-			$schema['display'] = $url_display;
-		}
-	}
-
 	$query_args = hxse_build_query_args( $schema, $current_params, $page );
 	$query      = new WP_Query( $query_args );
 
@@ -65,16 +56,6 @@ function hxse_shortcode( $atts ) {
 		. ' data-prefix="' . esc_attr( $prefix ) . '">';
 
 	hxse_render_filters( $schema, $hxse_id, $current_params, $endpoint );
-
-	// タブ切り替え
-	if ( ! empty( $schema['tabs'] ) ) {
-		hxse_render_tabs( $schema, $hxse_id, $current_params, $endpoint );
-	}
-
-	// 表示切り替えアイコン
-	if ( ! empty( $schema['display_switcher'] ) ) {
-		hxse_render_display_switcher( $schema, $hxse_id, $current_params, $endpoint );
-	}
 
 	echo '<div id="hxse-results-' . esc_attr( $hxse_id ) . '" class="hxse-results-wrap">';
 	hxse_render_results( $schema, $hxse_id, $query, $page );

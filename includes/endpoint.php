@@ -48,15 +48,6 @@ function hxse_rest_handler( WP_REST_Request $request ) {
 	$page      = absint( $request->get_param( 'page' ) ) ?: 1;
 	$is_append = (bool) $request->get_param( 'hxse_append' );
 
-	// display切り替えパラメータをスキーマに反映
-	$display_param = $request->get_param( 'display' );
-	if ( $display_param ) {
-		$allowed = array( 'grid', 'list', 'table', 'custom' );
-		if ( in_array( sanitize_key( $display_param ), $allowed, true ) ) {
-			$schema['display'] = sanitize_key( $display_param );
-		}
-	}
-
 	$query_args = hxse_build_query_args( $schema, $params, $page );
 	$query      = new WP_Query( $query_args );
 
@@ -108,7 +99,7 @@ function hxse_render_results( $schema, $hxse_id, $query, $page, $is_append = fal
 	// displayに応じてコンテナ・アイテムのHTML・テンプレートを決定
 	switch ( $display ) {
 		case 'list':
-			$container_open  = '<div class="hxse-results hxse-results--list" id="hxse-list-' . esc_attr( $hxse_id ) . '">';
+			$container_open  = '<div class="hxse-results hxse-results--list">';
 			$container_close = '</div>';
 			$item_open       = '<div class="hxse-item">';
 			$item_close      = '</div>';
@@ -116,7 +107,7 @@ function hxse_render_results( $schema, $hxse_id, $query, $page, $is_append = fal
 			break;
 
 		case 'table':
-			$container_open  = '<div class="hxse-results hxse-results--table" id="hxse-table-' . esc_attr( $hxse_id ) . '"><table class="hxse-table"><thead><tr>'
+			$container_open  = '<div class="hxse-results hxse-results--table"><table class="hxse-table"><thead><tr>'
 				. '<th>' . esc_html__( '日付', 'hxse-code-first-search' ) . '</th>'
 				. '<th>' . esc_html__( 'タイトル', 'hxse-code-first-search' ) . '</th>'
 				. '<th>' . esc_html__( 'カテゴリー', 'hxse-code-first-search' ) . '</th>'
@@ -136,7 +127,7 @@ function hxse_render_results( $schema, $hxse_id, $query, $page, $is_append = fal
 			break;
 
 		default: // grid
-			$container_open  = '<div class="hxse-results hxse-results--grid" id="hxse-grid-' . esc_attr( $hxse_id ) . '">';
+			$container_open  = '<div class="hxse-results hxse-results--grid">';
 			$container_close = '</div>';
 			$item_open       = '<div class="hxse-item">';
 			$item_close      = '</div>';
@@ -147,28 +138,19 @@ function hxse_render_results( $schema, $hxse_id, $query, $page, $is_append = fal
 	if ( ! $is_append ) {
 		// 件数表示をコンテナの前（結果の上）に出力
 		hxse_render_count_only( $schema, $query, $page );
-
-		// 結果がない場合はコンテナを出力せずno-resultsのみ表示
-		if ( ! $query->have_posts() ) {
-			echo '<p class="hxse-no-results">' . esc_html__( '該当する結果が見つかりませんでした。', 'hxse-code-first-search' ) . '</p>';
-			return;
-		}
-
 		echo $container_open; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- controlled HTML string
 	}
 
 	if ( $query->have_posts() ) {
 		while ( $query->have_posts() ) {
 			$query->the_post();
-			if ( $item_open ) {
-				echo $item_open; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- controlled HTML string
-			}
+			echo $item_open; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- controlled HTML string
 			hxse_load_template( $schema, $hxse_id, $template );
-			if ( $item_close ) {
-				echo $item_close; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- static closing tag
-			}
+			echo $item_close; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- static closing tag
 		}
 		wp_reset_postdata();
+	} else {
+		echo '<p class="hxse-no-results">' . esc_html__( '該当する結果が見つかりませんでした。', 'hxse-code-first-search' ) . '</p>';
 	}
 
 	if ( ! $is_append ) {
@@ -184,13 +166,12 @@ function hxse_render_results( $schema, $hxse_id, $query, $page, $is_append = fal
 			if ( $page < $total_pages ) {
 				ob_start();
 				hxse_render_loadmore( $schema, $hxse_id, $pagination, $page );
-				$new_btn     = ob_get_clean();
-				$new_btn_oob = str_replace(
+				$new_btn = ob_get_clean();
+				echo str_replace(
 					'<div class="hxse-loadmore-wrap" id="hxse-loadmore-wrap-' . esc_attr( $hxse_id ) . '">',
 					'<div class="hxse-loadmore-wrap" id="hxse-loadmore-wrap-' . esc_attr( $hxse_id ) . '" hx-swap-oob="outerHTML">',
-					$new_btn
+					$new_btn // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- HTML from controlled render function
 				);
-				echo $new_btn_oob; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- HTML from controlled render function, OOB attribute added via str_replace on safe input
 			} else {
 				echo '<div id="hxse-loadmore-wrap-' . esc_attr( $hxse_id ) . '" hx-swap-oob="outerHTML"></div>';
 			}

@@ -130,56 +130,8 @@
 	} );
 
 	// -----------------------------------------------------------------------
-	// タブ・表示切り替えボタン: クリック後にis-active更新 + hidden inputを更新
+	// モバイル折りたたみトグル
 	// -----------------------------------------------------------------------
-	document.addEventListener( 'click', function ( e ) {
-		// タブ
-		var tab = e.target.closest( '.hxse-tab-btn' );
-		if ( tab ) {
-			var tabGroup = tab.closest( '.hxse-tabs' );
-			if ( tabGroup ) {
-				tabGroup.querySelectorAll( '.hxse-tab-btn' ).forEach( function ( btn ) {
-					btn.classList.remove( 'is-active' );
-					btn.setAttribute( 'aria-selected', 'false' );
-				} );
-				tab.classList.add( 'is-active' );
-				tab.setAttribute( 'aria-selected', 'true' );
-			}
-
-			// フォームのtab hidden inputを更新
-			var hxseId   = tab.closest( '.hxse-wrap' ) && tab.closest( '.hxse-wrap' ).dataset.hxseId;
-			var tabInput = hxseId ? document.querySelector( '#hxse-form-' + hxseId + ' .hxse-tab-input' ) : null;
-			if ( tabInput ) {
-				var tabVals = JSON.parse( tab.getAttribute( 'hx-vals' ) || '{}' );
-				tabInput.value = tabVals.tab !== undefined ? tabVals.tab : 0;
-			}
-		}
-
-		// 表示切り替えアイコン
-		var displayBtn = e.target.closest( '.hxse-display-btn' );
-		if ( displayBtn ) {
-			var switcher = displayBtn.closest( '.hxse-display-switcher' );
-			if ( switcher ) {
-				switcher.querySelectorAll( '.hxse-display-btn' ).forEach( function ( btn ) {
-					btn.classList.remove( 'is-active' );
-					btn.setAttribute( 'aria-pressed', 'false' );
-				} );
-				displayBtn.classList.add( 'is-active' );
-				displayBtn.setAttribute( 'aria-pressed', 'true' );
-			}
-
-			// フォームのdisplay hidden inputを更新
-			var wrap        = displayBtn.closest( '.hxse-wrap' );
-			var wrapId      = wrap && wrap.dataset.hxseId;
-			var displayInput = wrapId ? document.querySelector( '#hxse-form-' + wrapId + ' .hxse-display-input' ) : null;
-			if ( displayInput ) {
-				var displayVals = JSON.parse( displayBtn.getAttribute( 'hx-vals' ) || '{}' );
-				if ( displayVals.display ) {
-					displayInput.value = displayVals.display;
-				}
-			}
-		}
-	} );
 	document.addEventListener( 'click', function ( e ) {
 		var btn = e.target.closest( '.hxse-filter-toggle' );
 		if ( ! btn ) return;

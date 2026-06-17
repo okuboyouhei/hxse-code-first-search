@@ -92,48 +92,6 @@ function hxse_build_query_args( $schema, $params, $page = 1 ) {
 	$tax_query  = array();
 	$meta_query = array();
 
-	// conditionsの処理（固定絞り込み条件）
-	$conditions = isset( $schema['conditions'] ) ? $schema['conditions'] : array();
-
-	// tabsの処理: active_tabパラメータに応じてconditionsを切り替え
-	if ( ! empty( $schema['tabs'] ) ) {
-		$active_tab = hxse_get_param( $params, 'tab', $prefix );
-		$active_tab = $active_tab !== '' ? absint( $active_tab ) : 0;
-		if ( isset( $schema['tabs'][ $active_tab ]['conditions'] ) ) {
-			$conditions = $schema['tabs'][ $active_tab ]['conditions'];
-		}
-	}
-
-	// conditionsをtax_query/meta_queryに適用
-	foreach ( $conditions as $condition ) {
-		$ctype = isset( $condition['type'] ) ? sanitize_key( $condition['type'] ) : '';
-
-		if ( 'taxonomy' === $ctype ) {
-			$taxonomy = isset( $condition['taxonomy'] ) ? sanitize_key( $condition['taxonomy'] ) : '';
-			$terms    = isset( $condition['terms'] ) ? array_map( 'absint', (array) $condition['terms'] ) : array();
-			if ( $taxonomy && ! empty( $terms ) ) {
-				$tax_query[] = array(
-					'taxonomy' => $taxonomy,
-					'field'    => 'term_id',
-					'terms'    => $terms,
-					'operator' => 'IN',
-				);
-			}
-		} elseif ( 'meta' === $ctype ) {
-			$meta_key = isset( $condition['meta_key'] ) ? sanitize_key( $condition['meta_key'] ) : '';
-			$value    = isset( $condition['value'] ) ? sanitize_text_field( (string) $condition['value'] ) : '';
-			$compare  = isset( $condition['compare'] ) ? sanitize_text_field( $condition['compare'] ) : '=';
-			if ( $meta_key && $value !== '' ) {
-				$meta_query[] = array(
-					'key'     => $meta_key,
-					'value'   => $value,
-					'compare' => $compare,
-				);
-			}
-		}
-	}
-
-	// filtersの処理
 	foreach ( $schema['filters'] as $filter ) {
 		if ( empty( $filter['key'] ) || empty( $filter['type'] ) ) {
 			continue;
