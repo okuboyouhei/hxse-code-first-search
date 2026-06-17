@@ -110,12 +110,22 @@ function hxse_build_query_args( $schema, $params, $page = 1 ) {
 
 		if ( 'taxonomy' === $ctype ) {
 			$taxonomy = isset( $condition['taxonomy'] ) ? sanitize_key( $condition['taxonomy'] ) : '';
-			$terms    = isset( $condition['terms'] ) ? array_map( 'absint', (array) $condition['terms'] ) : array();
+			$terms    = isset( $condition['terms'] ) ? (array) $condition['terms'] : array();
 			if ( $taxonomy && ! empty( $terms ) ) {
+				// termsの値が数値のみならterm_id、文字列が含まれるならslugで検索
+				$has_string = false;
+				foreach ( $terms as $t ) {
+					if ( ! is_numeric( $t ) ) {
+						$has_string = true;
+						break;
+					}
+				}
 				$tax_query[] = array(
 					'taxonomy' => $taxonomy,
-					'field'    => 'term_id',
-					'terms'    => $terms,
+					'field'    => $has_string ? 'slug' : 'term_id',
+					'terms'    => $has_string
+						? array_map( 'sanitize_key', $terms )
+						: array_map( 'absint', $terms ),
 					'operator' => 'IN',
 				);
 			}
