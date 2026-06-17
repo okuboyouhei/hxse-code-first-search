@@ -12,17 +12,30 @@ if ( ! defined( 'ABSPATH' ) ) {
  * @param string $endpoint       REST APIエンドポイントURL
  */
 function hxse_render_filters( $schema, $hxse_id, $current_params = array(), $endpoint = '' ) {
-	$prefix   = isset( $schema['url_params']['prefix'] ) ? sanitize_key( $schema['url_params']['prefix'] ) : '';
-	$target   = '#hxse-results-' . esc_attr( $hxse_id );
+	$prefix      = isset( $schema['url_params']['prefix'] ) ? sanitize_key( $schema['url_params']['prefix'] ) : '';
+	$target      = '#hxse-results-' . esc_attr( $hxse_id );
 	$url_enable  = ! empty( $schema['url_params']['enable'] );
 	$url_mode    = isset( $schema['url_params']['mode'] ) ? sanitize_key( $schema['url_params']['mode'] ) : 'always';
-
-	// hx-push-urlは常にfalse（REST APIのURLがそのまま反映されてしまうため）
-	// URLパラメータの管理はhxse.jsのhtmx:afterRequestイベントで行う
-	$push_url = 'false';
+	$push_url    = 'false';
+	$has_filters = ! empty( $schema['filters'] );
 
 	if ( ! $endpoint ) {
 		$endpoint = rest_url( 'hxse/v1/search' );
+	}
+
+	// filtersが空の場合: 見えないフォームを出力してloadmore等のhtmx機能を維持
+	if ( ! $has_filters ) {
+		echo '<form class="hxse-filters hxse-filters--hidden" id="hxse-form-' . esc_attr( $hxse_id ) . '"';
+		echo ' hx-get="' . esc_url( $endpoint ) . '"';
+		echo ' hx-target="' . esc_attr( $target ) . '"';
+		echo ' hx-include="this"';
+		echo ' data-url-mode="' . esc_attr( $url_mode ) . '"';
+		echo ' data-url-enable="' . esc_attr( $url_enable ? '1' : '0' ) . '"';
+		echo ' style="display:none">';
+		echo '<input type="hidden" name="id" value="' . esc_attr( $hxse_id ) . '">';
+		echo '<input type="hidden" name="page" value="1" class="hxse-page-input">';
+		echo '</form>';
+		return;
 	}
 
 	echo '<form class="hxse-filters" id="hxse-form-' . esc_attr( $hxse_id ) . '"';
@@ -48,6 +61,11 @@ function hxse_render_filters( $schema, $hxse_id, $current_params = array(), $end
 	// hidden fields（REST API用：action・nonceは不要）
 	echo '<input type="hidden" name="id" value="' . esc_attr( $hxse_id ) . '">';
 	echo '<input type="hidden" name="page" value="1" class="hxse-page-input">';
+
+	// display・tab状態管理用hidden input（JS側で更新）
+	$current_display = isset( $schema['display'] ) ? sanitize_key( $schema['display'] ) : 'grid';
+	echo '<input type="hidden" name="display" value="' . esc_attr( $current_display ) . '" class="hxse-display-input">';
+	echo '<input type="hidden" name="tab" value="0" class="hxse-tab-input">';
 
 	// フィルター行
 	echo '<div class="hxse-filters-row">';
@@ -406,5 +424,102 @@ function hxse_render_sort( $sort_options, $prefix, $current_params ) {
 		);
 	}
 	echo '</select>';
+	echo '</div>';
+}
+
+/**
+ * タブ切り替えUIを描画する
+ *
+ * @param array  $schema
+ * @param string $hxse_id
+ * @param array  $current_params
+ * @param string $endpoint
+ */
+function hxse_render_tabs( $schema, $hxse_id, $current_params, $endpoint ) {
+	$tabs       = $schema['tabs'];
+	$prefix     = isset( $schema['url_params']['prefix'] ) ? sanitize_key( $schema['url_params']['prefix'] ) : '';
+	$active_tab = hxse_get_param( $current_params, 'tab', $prefix );
+	$active_tab = $active_tab !== '' ? absint( $active_tab ) : 0;
+	$target     = '#hxse-results-' . esc_attr( $hxse_id );
+	$form_id    = '#hxse-form-' . esc_attr( $hxse_id );
+
+	echo '<div class="hxse-tabs" role="tablist">';
+
+	foreach ( $tabs as $index => $tab ) {
+		$label     = isset( $tab['label'] ) ? sanitize_text_field( $tab['label'] ) : '';
+		$is_active = ( $index === $active_tab );
+
+		printf(
+			'<button type="button" class="hxse-tab-btn%s" role="tab" aria-selected="%s"
+				hx-get="%s"
+				hx-target="%s"
+				hx-include="%s"
+				hx-vals=\'{"tab": "%d", "page": "1"}\'
+			>%s</button>',
+			$is_active ? ' is-active' : '',
+			$is_active ? 'true' : 'false',
+			esc_url( $endpoint ),
+			esc_attr( $target ),
+			esc_attr( $form_id ),
+			absint( $index ),
+			esc_html( $label )
+		);
+	}
+
+	echo '</div>';
+}
+
+/**
+ * 表示切り替えアイコンボタンを描画する
+ *
+ * @param array  $schema
+ * @param string $hxse_id
+ * @param array  $current_params
+ * @param string $endpoint
+ */
+function hxse_render_display_switcher( $schema, $hxse_id, $current_params, $endpoint ) {
+	$switcher       = (array) $schema['display_switcher'];
+	$current_display = isset( $schema['display'] ) ? sanitize_key( $schema['display'] ) : 'grid';
+	$target         = '#hxse-results-' . esc_attr( $hxse_id );
+	$form_id        = '#hxse-form-' . esc_attr( $hxse_id );
+
+	$icons = array(
+		'grid'  => '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>',
+		'list'  => '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>',
+		'table' => '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="3" y1="15" x2="21" y2="15"/><line x1="9" y1="9" x2="9" y2="21"/></svg>',
+	);
+
+	$labels = array(
+		'grid'  => __( 'グリッド表示', 'hxse-code-first-search' ),
+		'list'  => __( 'リスト表示', 'hxse-code-first-search' ),
+		'table' => __( 'テーブル表示', 'hxse-code-first-search' ),
+	);
+
+	echo '<div class="hxse-display-switcher">';
+
+	foreach ( $switcher as $mode ) {
+		$mode      = sanitize_key( $mode );
+		$is_active = ( $mode === $current_display );
+		$icon      = isset( $icons[ $mode ] ) ? $icons[ $mode ] : '';
+		$label     = isset( $labels[ $mode ] ) ? $labels[ $mode ] : $mode;
+
+		printf(
+			'<button type="button" class="hxse-display-btn%s" aria-label="%s" aria-pressed="%s"
+				hx-get="%s"
+				hx-target="%s"
+				hx-include="%s"
+				hx-vals=\'{"display": "%s", "page": "1"}\'
+			>%s</button>',
+			$is_active ? ' is-active' : '',
+			esc_attr( $label ),
+			$is_active ? 'true' : 'false',
+			esc_url( $endpoint ),
+			esc_attr( $target ),
+			esc_attr( $form_id ),
+			esc_attr( $mode ),
+			$icon // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- static SVG string
+		);
+	}
+
 	echo '</div>';
 }

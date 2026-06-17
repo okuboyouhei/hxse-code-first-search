@@ -32,10 +32,18 @@ add_action( 'rest_api_init',      'hxse_register_rest_route' );
 
 /**
  * フロントエンドアセットの読み込み
+ * ショートコード [hxse] が使われているページのみ読み込む。
  * htmxはHXシリーズ共通ハンドル名 'hx-htmx' で登録する。
  * Text Domain はWordPress 4.6以降自動ロードされるため load_plugin_textdomain() 不要。
  */
 function hxse_enqueue_assets() {
+	global $post;
+
+	// ショートコードが含まれていないページはスキップ
+	if ( ! is_a( $post, 'WP_Post' ) || ! has_shortcode( $post->post_content, 'hxse' ) ) {
+		return;
+	}
+
 	if ( ! wp_script_is( 'hx-htmx', 'registered' ) ) {
 		wp_register_script(
 			'hx-htmx',

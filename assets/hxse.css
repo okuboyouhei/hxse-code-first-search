@@ -221,13 +221,13 @@
    ============================================= */
 .hxse-results {
 	display: grid;
-	grid-template-columns: repeat( 3, 1fr );
+	grid-template-columns: repeat( var(--hxse-columns, 3), 1fr );
 	gap: 1.25rem;
 }
 
 .hxse-no-results {
 	color: var(--hxse-color-text-muted);
-	padding: 1.5rem 0;
+	padding: 1.5rem 1rem;
 	font-size: var(--hxse-font-size-base);
 	grid-column: 1 / -1;
 }
@@ -236,14 +236,18 @@
    デフォルトテンプレート（カード）
    ============================================= */
 .hxse-post {
-	background: var(--hxse-color-bg);
-	border: 1px solid var(--hxse-color-border);
-	border-radius: var(--hxse-radius-lg);
 	overflow: hidden;
 	transition: box-shadow 0.15s;
 }
 
-.hxse-post:hover {
+/* gridのカードスタイルはgridコンテナ内のみに適用 */
+.hxse-results--grid .hxse-post {
+	background: var(--hxse-color-bg);
+	border: 1px solid var(--hxse-color-border);
+	border-radius: var(--hxse-radius-lg);
+}
+
+.hxse-results--grid .hxse-post:hover {
 	box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
 }
 
@@ -476,8 +480,8 @@
 		border-radius: var(--hxse-radius-md);
 	}
 
-	.hxse-post-body {
-		padding: 0.25rem 0.75rem;
+	.hxse-results--grid .hxse-post-body {
+		padding: 0.875rem 1rem;
 	}
 
 	.hxse-filters-row {
@@ -510,10 +514,19 @@
 	display: flex;
 	flex-direction: column;
 	gap: 0;
+	border: 1px solid var(--hxse-color-border);
+	border-radius: var(--hxse-radius-lg);
+	overflow: hidden;
+	background: var(--hxse-color-bg);
 }
 
 .hxse-results--list .hxse-item {
 	border-bottom: 1px solid var(--hxse-color-border);
+	padding: 0;
+	background: transparent;
+	/* gridのカードスタイルをリセット */
+	border-radius: 0;
+	box-shadow: none;
 }
 
 .hxse-results--list .hxse-item:last-child {
@@ -521,46 +534,66 @@
 }
 
 .hxse-post--list {
-	background: transparent;
-	border: none;
-	border-radius: 0;
-	box-shadow: none;
+	/* gridのカードスタイルはgridコンテナ限定になったのでリセット不要 */
 }
 
 .hxse-post--list .hxse-post-link {
 	flex-direction: row;
-	align-items: flex-start;
+	align-items: center;
 	gap: 1rem;
-	padding: 1rem 0;
+	padding: 0.875rem 1rem;
 	border-radius: 0;
 	border: none;
 	box-shadow: none;
+	width: 100%;
+	box-sizing: border-box;
+	transition: background 0.15s;
 }
 
 .hxse-post--list .hxse-post-link:hover {
 	box-shadow: none;
+	background: var(--hxse-color-bg-subtle);
 }
 
 .hxse-post--list .hxse-post-thumbnail {
-	width: 120px;
-	min-width: 120px;
-	aspect-ratio: 4 / 3;
+	width: 72px;
+	min-width: 72px;
+	aspect-ratio: 1 / 1;
 	border-radius: var(--hxse-radius-md);
 	overflow: hidden;
+	flex-shrink: 0;
+	align-self: center;
 }
 
 .hxse-post--list .hxse-post-body {
-	padding: 0;
+	padding: 0.125rem 0;
 	flex: 1;
+	display: flex;
+	flex-direction: column;
+	gap: 0.2rem;
+	justify-content: center;
 }
 
 .hxse-post--list .hxse-post-title {
-	font-size: 1rem;
+	font-size: var(--hxse-font-size-base);
+	font-weight: 600;
+	color: var(--hxse-color-text);
+	margin: 0;
 	-webkit-line-clamp: 1;
+	line-height: 1.5;
+}
+
+.hxse-post--list .hxse-post-date {
+	font-size: var(--hxse-font-size-sm);
+	color: var(--hxse-color-text-muted);
+	margin: 0;
 }
 
 .hxse-post--list .hxse-post-excerpt {
-	-webkit-line-clamp: 2;
+	font-size: var(--hxse-font-size-sm);
+	color: var(--hxse-color-text-muted);
+	-webkit-line-clamp: 1;
+	margin: 0;
 }
 
 /* =============================================
@@ -727,4 +760,76 @@
 	.hxse-filter-body.is-open ~ .hxse-filters-actions {
 		display: flex;
 	}
+}
+
+/* =============================================
+   タブ切り替え
+   ============================================= */
+.hxse-tabs {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0;
+	border-bottom: 2px solid var(--hxse-color-border);
+	margin-bottom: 1.5rem;
+}
+
+.hxse-tab-btn {
+	padding: 0.625rem 1.25rem;
+	background: transparent;
+	border: none;
+	border-bottom: 2px solid transparent;
+	margin-bottom: -2px;
+	font-size: var(--hxse-font-size-base);
+	font-family: inherit;
+	font-weight: 500;
+	color: var(--hxse-color-text-muted);
+	cursor: pointer;
+	transition: color 0.15s, border-color 0.15s;
+	white-space: nowrap;
+}
+
+.hxse-tab-btn:hover {
+	color: var(--hxse-color-text);
+}
+
+.hxse-tab-btn.is-active {
+	color: var(--hxse-color-primary);
+	border-bottom-color: var(--hxse-color-primary);
+}
+
+/* =============================================
+   表示切り替えアイコン
+   ============================================= */
+.hxse-display-switcher {
+	display: flex;
+	gap: 4px;
+	justify-content: flex-end;
+	margin-bottom: 0.75rem;
+}
+
+.hxse-display-btn {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 32px;
+	height: 32px;
+	padding: 0;
+	background: transparent;
+	border: 1px solid var(--hxse-color-border);
+	border-radius: var(--hxse-radius-md);
+	color: var(--hxse-color-text-muted);
+	cursor: pointer;
+	transition: background 0.15s, border-color 0.15s, color 0.15s;
+}
+
+.hxse-display-btn:hover {
+	background: var(--hxse-color-bg-subtle);
+	color: var(--hxse-color-text);
+	border-color: var(--hxse-color-border-focus);
+}
+
+.hxse-display-btn.is-active {
+	background: var(--hxse-color-primary);
+	border-color: var(--hxse-color-primary);
+	color: #fff;
 }

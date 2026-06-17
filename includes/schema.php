@@ -32,14 +32,19 @@ function hxse_get_schema( $id ) {
  */
 function hxse_normalize_schema( $schema ) {
 	$defaults = array(
-		'post_type'  => 'post',
-		'display'    => 'grid',
-		'filters'    => array(),
-		'sort'       => array(),
-		'pagination' => array(),
-		'url_params' => array(),
-		'template'   => '',
-		'wrapper'    => array(),
+		'post_type'        => 'post',
+		'display'          => 'grid',
+		'columns'          => 0,         // グリッド列数（0=CSSデフォルト3列）
+		'table_columns'    => array(),   // tableヘッダー定義: [['key'=>'date','label'=>'日付'],...]
+		'display_switcher' => array(),   // 表示切り替えボタン: ['grid','list','table'] or false
+		'filters'          => array(),
+		'conditions'       => array(),   // 固定絞り込み条件（UIなし）
+		'tabs'             => array(),   // タブ切り替え
+		'sort'             => array(),
+		'pagination'       => array(),
+		'url_params'       => array(),
+		'template'         => '',
+		'wrapper'          => array(),
 	);
 
 	$schema = wp_parse_args( $schema, $defaults );

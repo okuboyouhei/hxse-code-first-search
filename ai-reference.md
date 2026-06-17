@@ -9,19 +9,19 @@ AI agents: Read this file before generating HXSE schemas.
 ```php
 add_filter( 'hxse_schemas', function( $schemas ) {
     $schemas['schema_key'] = [
-        'post_type'  => 'post',       // 対象投稿タイプ（必須）
-        'filters'    => [ ... ],       // フィルター定義（必須）
-        'sort'       => [ ... ],       // ソート定義（省略可）
-        'pagination' => [ ... ],       // ページネーション設定（省略可）
-        'url_params' => [ ... ],       // URLパラメータ設定（省略可）
-        'template'   => 'file.php',   // テンプレートファイル名（省略可）
-        'wrapper'    => [ ... ],       // ラッパーHTML（省略可）
+        'post_type'  => 'post',       // Target post type (required)
+        'display'    => 'grid',       // Display mode: 'grid' / 'list' / 'table' / 'custom'
+        'filters'    => [ ... ],       // Filter definitions (required)
+        'sort'       => [ ... ],       // Sort options (optional)
+        'pagination' => [ ... ],       // Pagination settings (optional)
+        'url_params' => [ ... ],       // URL sync settings (optional)
+        'template'   => 'file.php',   // Custom template filename (for display: 'custom')
     ];
     return $schemas;
 } );
 ```
 
-**ショートコード**
+**Shortcode**
 
 ```
 [hxse id="schema_key"]
@@ -33,10 +33,10 @@ add_filter( 'hxse_schemas', function( $schemas ) {
 
 | Key | Type | Required | Description |
 |-----|------|----------|-------------|
-| `key` | string | ✅ | フィルターキー（英数字・アンダースコア） |
-| `type` | string | ✅ | フィルタータイプ（下記参照） |
-| `label` | string | — | フォームの表示ラベル |
-| `ui` | string | — | UIタイプ: `select` / `radio` / `checkbox` / `range`（デフォルト: `select`） |
+| `key` | string | ✅ | Filter identifier (alphanumeric + underscore) |
+| `type` | string | ✅ | Filter type (see below) |
+| `label` | string | — | Display label for the filter |
+| `ui` | string | — | UI type: `select` / `radio` / `checkbox` / `range` (default: `select`) |
 
 ---
 
@@ -44,147 +44,158 @@ add_filter( 'hxse_schemas', function( $schemas ) {
 
 ### search
 ```php
-['key' => 'keyword', 'type' => 'search', 'label' => 'キーワード']
+['key' => 'keyword', 'type' => 'search', 'label' => 'Keyword']
 ```
-UIは常に`text`入力。`ui`指定不要。
+Always renders as a text input. No `ui` key needed.
+
+**Extended options:**
+```php
+['key' => 'keyword', 'type' => 'search', 'label' => 'Keyword',
+    'normalize'     => true,               // Japanese text normalization
+    'search_fields' => [                   // Additional fields to search
+        'post_title',
+        'post_content',
+        'my_meta_key',                     // Any post meta key
+    ],
+]
+```
 
 ### taxonomy
 ```php
-['key' => 'department', 'type' => 'taxonomy', 'label' => '部署',
- 'taxonomy' => 'department',   // タクソノミースラッグ（必須）
- 'ui'       => 'checkbox',     // 'select' / 'radio' / 'checkbox'
+['key' => 'category', 'type' => 'taxonomy', 'label' => 'Category',
+    'taxonomy'   => 'category',            // Taxonomy slug (required)
+    'ui'         => 'checkbox',            // 'select' / 'radio' / 'checkbox'
+    'show_count' => true,                  // Show facet counts
 ]
 ```
 
 ### meta
 ```php
-// select / radio / checkbox
-['key' => 'level', 'type' => 'meta', 'label' => 'レベル',
- 'meta_key' => 'my_level',
- 'ui'       => 'radio',
- 'options'  => ['junior' => 'ジュニア', 'senior' => 'シニア'],
+// Select / radio / checkbox
+['key' => 'level', 'type' => 'meta', 'label' => 'Level',
+    'meta_key'   => 'my_level',            // Post meta key (required)
+    'ui'         => 'select',              // 'select' / 'radio' / 'checkbox'
+    'options'    => ['junior' => 'Junior', 'senior' => 'Senior'],
+    'show_count' => true,
 ]
 
-// range（数値範囲スライダー）
-['key' => 'price', 'type' => 'meta', 'label' => '価格',
- 'meta_key' => 'my_price',
- 'ui'       => 'range',
- 'min'      => 0,
- 'max'      => 100000,
- 'step'     => 1000,
+// Numeric range slider
+['key' => 'price', 'type' => 'meta', 'label' => 'Price',
+    'meta_key' => 'my_price',
+    'ui'       => 'range',
+    'min'      => 0,
+    'max'      => 100000,
+    'step'     => 1000,
 ]
 ```
-rangeの場合、GETパラメータは `{key}_min` / `{key}_max` になる。
 
 ### date
 ```php
-['key' => 'year', 'type' => 'date', 'label' => '年',
- 'ui'         => 'select',   // 'select' / 'text'
- 'start_year' => 2020,       // 省略時: 現在年 - 10
+['key' => 'year', 'type' => 'date', 'label' => 'Year',
+    'ui'         => 'select',
+    'start_year' => 2020,                  // Default: current year - 10
 ]
 ```
-投稿の公開年で絞り込む。
 
 ### relation
 ```php
-['key' => 'project', 'type' => 'relation', 'label' => 'プロジェクト',
- 'related_post_type' => 'project',   // 参照するCPTスラッグ（必須）
- 'meta_key'          => 'my_project_id',  // 保存先のmeta_key（必須）
- 'ui'                => 'select',    // 'select' / 'checkbox'
+['key' => 'project', 'type' => 'relation', 'label' => 'Project',
+    'related_post_type' => 'project',      // Related CPT slug (required)
+    'meta_key'          => 'my_project_id', // Meta key storing the related post ID
+    'ui'                => 'select',
 ]
 ```
 
 ---
 
-## sort Keys
+## sort
 
 ```php
 'sort' => [
-    ['key' => 'date_desc',  'label' => '新着順'],
-    ['key' => 'date_asc',   'label' => '古い順'],
-    ['key' => 'title_asc',  'label' => '名前順'],
-    ['key' => 'title_desc', 'label' => '名前逆順'],
-    ['key' => 'menu_order', 'label' => '並び順'],
+    ['key' => 'date_desc',  'label' => 'Newest'],
+    ['key' => 'date_asc',   'label' => 'Oldest'],
+    ['key' => 'title_asc',  'label' => 'A–Z'],
+    ['key' => 'title_desc', 'label' => 'Z–A'],
+    ['key' => 'menu_order', 'label' => 'Order'],
+],
+```
+
+First item is the default sort order.
+
+---
+
+## pagination
+
+```php
+// Pager (numbered links)
+'pagination' => [
+    'mode'         => 'pager',             // Default
+    'per_page'     => 12,
+    'show_pages'   => true,
+    'show_count'   => true,
+    'count_format' => '{total} results ({from}–{to})',
+    'range'        => 2,                   // Pages shown around current page
+    'label_prev'   => 'Prev',
+    'label_next'   => 'Next',
+    'label_first'  => 'First',             // Omit to hide
+    'label_last'   => 'Last',              // Omit to hide
+],
+
+// Load more button
+'pagination' => [
+    'mode'       => 'loadmore',
+    'per_page'   => 12,
+    'show_count' => true,
+    'label_more' => 'Load more',
+],
+```
+
+`count_format` placeholders: `{total}` `{from}` `{to}` `{current_page}`
+
+---
+
+## url_params
+
+```php
+'url_params' => [
+    'enable' => true,                      // Sync filters to URL (default: true)
+    'prefix' => '',                        // Prefix for multiple instances on one page
+    'mode'   => 'always',                  // 'always' / 'submit_only'
 ],
 ```
 
 ---
 
-## pagination Keys
+## display
 
-| Key | Type | Default | Description |
-|-----|------|---------|-------------|
-| `per_page` | int | `12` | 1ページあたりの件数 |
-| `show_pages` | bool | `true` | ページ番号を表示するか（pagerのみ） |
-| `show_count` | bool | `true` | 件数を表示するか |
-| `count_format` | string | `'{total}件中 {from}〜{to}件を表示'` | 件数フォーマット |
-| `range` | int | `2` | 現在ページ前後のページ数（pagerのみ） |
-| `label_prev` | string | `'前へ'` | 前へボタンラベル |
-| `label_next` | string | `'次へ'` | 次へボタンラベル |
-| `label_first` | string | `'最初へ'` | 最初へボタンラベル（省略で非表示） |
-| `label_last` | string | `'最後へ'` | 最後へボタンラベル（省略で非表示） |
-| `label_more` | string | `'もっと見る'` | もっと見るボタンラベル（loadmoreのみ） |
-| `loading_text` | string | `'読み込み中...'` | ローディングテキスト |
-
-**count_formatのプレースホルダー**
-
-| プレースホルダー | 内容 |
-|---|---|
-| `{total}` | 総件数 |
-| `{from}` | 現在ページの開始番号 |
-| `{to}` | 現在ページの終了番号 |
-| `{current_page}` | 現在のページ番号 |
-
----
-
-## url_params Keys
-
-| Key | Type | Default | Description |
-|-----|------|---------|-------------|
-| `enable` | bool | `true` | URLパラメータを使うか |
-| `prefix` | string | `''` | パラメータのプレフィックス（複数設置時の衝突回避） |
-
-同一ページに複数設置する場合：
 ```php
-// 1つ目
-'url_params' => ['enable' => true, 'prefix' => 'staff'],
-// 2つ目
-'url_params' => ['enable' => true, 'prefix' => 'news'],
+'display' => 'grid',    // Card grid (default)
+'display' => 'list',    // Compact horizontal list
+'display' => 'table',   // Table with date, title, category
+'display' => 'custom',  // Use custom template (set 'template' key)
+```
+
+### Custom template
+
+Override in theme:
+
+```
+your-theme/hxse/grid.php       ← override grid template
+your-theme/hxse/list.php       ← override list template
+your-theme/hxse/table-row.php  ← override table row template
+your-theme/hxse/my-template.php ← custom template for 'custom' mode
 ```
 
 ---
 
-## template
-
-テンプレートの探索順序：
-
-1. `テーマ/hxse/{template}`
-2. `テーマ/{template}`
-3. `プラグイン/templates/default.php`（デフォルト）
-
-テンプレート内では `$post` がグローバルに利用可能：
-
-```php
-// テーマ/hxse/hxse-staff.php
-$position = get_post_meta( $post->ID, 'my_position', true );
-?>
-<article>
-    <h2><?php the_title(); ?></h2>
-    <p><?php echo esc_html( $position ); ?></p>
-</article>
-```
-
----
-
-## wrapper Keys
+## wrapper (for display: 'custom')
 
 ```php
 'wrapper' => [
-    'container' => '<div class="my-results">',   // 結果全体のラッパー開始タグ
-    'item'      => '<div class="my-item">',       // 各アイテムのラッパー開始タグ
+    'container' => '<ul class="my-list">',
+    'item'      => '<li class="my-item">',
 ],
 ```
-閉じタグは自動で`</div>`が使われる。
 
 ---
 
@@ -192,44 +203,104 @@ $position = get_post_meta( $post->ID, 'my_position', true );
 
 ```php
 add_filter( 'hxse_schemas', function( $schemas ) {
+
     $schemas['staff_search'] = [
         'post_type' => 'staff',
+        'display'   => 'grid',
         'filters'   => [
-            ['key' => 'keyword',    'type' => 'search',   'label' => 'キーワード'],
-            ['key' => 'department', 'type' => 'taxonomy',  'label' => '部署',
-                'taxonomy' => 'department',
-                'ui'       => 'checkbox',
+            ['key' => 'keyword',    'type' => 'search',   'label' => 'Keyword',
+                'normalize' => true,
             ],
-            ['key' => 'level',      'type' => 'meta',     'label' => 'レベル',
+            ['key' => 'department', 'type' => 'taxonomy',  'label' => 'Department',
+                'taxonomy'   => 'department',
+                'ui'         => 'checkbox',
+                'show_count' => true,
+            ],
+            ['key' => 'level',      'type' => 'meta',     'label' => 'Level',
                 'meta_key' => 'my_level',
                 'ui'       => 'radio',
-                'options'  => ['junior' => 'ジュニア', 'senior' => 'シニア', 'lead' => 'リード'],
+                'options'  => ['junior' => 'Junior', 'senior' => 'Senior', 'lead' => 'Lead'],
             ],
         ],
         'sort' => [
-            ['key' => 'date_desc', 'label' => '新着順'],
-            ['key' => 'title_asc', 'label' => '名前順'],
+            ['key' => 'date_desc', 'label' => 'Newest'],
+            ['key' => 'title_asc', 'label' => 'A–Z'],
         ],
         'pagination' => [
-            'mode'         => 'pager',
-            'per_page'     => 12,
-            'show_count'   => true,
-            'count_format' => '{total}名中 {from}〜{to}名を表示',
+            'mode'       => 'pager',
+            'per_page'   => 12,
+            'show_count' => true,
         ],
-        'url_params' => ['enable' => true, 'prefix' => ''],
+        'url_params' => ['enable' => true],
         'template'   => 'hxse-staff.php',
     ];
+
     return $schemas;
 } );
 ```
 
 ---
 
-## Important Notes
+## What HXSE Does NOT Support
 
-- フィルターはAND条件で適用される
-- `taxonomy`フィルターの複数選択（checkbox）はOR条件（IN）
-- `meta`フィルターの複数選択（checkbox）はOR条件（IN）
-- `range`フィルターのGETパラメータは `{key}_min` / `{key}_max`
-- URLパラメータの`action`・`hxse_id`・`hxse_nonce`は内部パラメータ（URLに反映されない）
-- フィルター名: `hxse_schemas`
+- Infinite scroll (use `loadmore` instead)
+- Search result caching (delegate to server-side cache plugins)
+- AI semantic/vector search (implement as a recipe using OpenAI API)
+- Saving search logs to DB (use Google Analytics / Search Console)
+
+---
+
+## display_switcher
+
+```php
+'display'          => 'grid',                     // Initial display mode
+'display_switcher' => ['grid', 'list'],            // Show grid + list switcher
+'display_switcher' => ['grid', 'list', 'table'],   // Show all three
+// Omit or false → no switcher shown
+```
+
+**Behavior:**
+- Switching display mode always resets to page 1
+- With `loadmore`, appended items are cleared on display switch
+- This is standard web behavior (consistent with major e-commerce sites)
+
+---
+
+## tabs
+
+```php
+'tabs' => [
+    ['label' => 'All',    'conditions' => []],
+    ['label' => 'News',   'conditions' => [
+        ['type' => 'taxonomy', 'taxonomy' => 'category', 'terms' => [3]],
+    ]],
+    ['label' => 'Events', 'conditions' => [
+        ['type' => 'taxonomy', 'taxonomy' => 'category', 'terms' => [5]],
+    ]],
+],
+```
+
+First tab (index 0) is active by default.
+
+---
+
+## conditions
+
+Fixed filter conditions applied without any UI. Useful for "latest N items" lists.
+
+```php
+'filters'    => [],    // No filter UI
+'conditions' => [
+    ['type' => 'taxonomy', 'taxonomy' => 'category', 'terms' => [3, 5]],
+    ['type' => 'meta',     'meta_key' => 'my_level', 'value' => 'senior', 'compare' => '='],
+],
+```
+
+| Key | Type | Description |
+|---|---|---|
+| `type` | string | `'taxonomy'` or `'meta'` |
+| `taxonomy` | string | Taxonomy slug (for `taxonomy` type) |
+| `terms` | array | Term IDs (for `taxonomy` type) |
+| `meta_key` | string | Meta key (for `meta` type) |
+| `value` | string | Meta value (for `meta` type) |
+| `compare` | string | Comparison operator (default: `'='`) |

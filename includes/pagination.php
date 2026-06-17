@@ -192,11 +192,22 @@ function hxse_render_loadmore( $schema, $hxse_id, $pagination, $current_page ) {
 	$next     = $current_page + 1;
 	$label    = isset( $pagination['label_more'] ) ? $pagination['label_more'] : 'もっと見る';
 	$form_id  = '#hxse-form-' . esc_attr( $hxse_id );
-	$results  = '#hxse-results-' . esc_attr( $hxse_id );
+	$display  = isset( $schema['display'] ) ? sanitize_key( $schema['display'] ) : 'grid';
 
-	// ボタン自体のIDをターゲットにして差し替える
-	// 次のページがなければボタンは返さない → 自然に消える
-	$btn_id = 'hxse-loadmore-btn-' . esc_attr( $hxse_id );
+	// displayに応じたコンテナIDをターゲットに
+	switch ( $display ) {
+		case 'list':
+			$target = '#hxse-list-' . esc_attr( $hxse_id );
+			break;
+		case 'table':
+			$target = '#hxse-table-' . esc_attr( $hxse_id ) . ' tbody';
+			break;
+		default:
+			$target = '#hxse-grid-' . esc_attr( $hxse_id );
+			break;
+	}
+
+	$btn_id  = 'hxse-loadmore-btn-' . esc_attr( $hxse_id );
 
 	printf(
 		'<div class="hxse-loadmore-wrap" id="hxse-loadmore-wrap-%s">
@@ -205,17 +216,19 @@ function hxse_render_loadmore( $schema, $hxse_id, $pagination, $current_page ) {
 				hx-target="%s"
 				hx-swap="beforeend"
 				hx-include="%s"
-				hx-vals=\'{"page": "%d", "hxse_append": "1", "hxse_loadmore_id": "%s"}\'
+				hx-vals=\'{"page": "%d", "hxse_append": "1", "hxse_loadmore_id": "%s", "id": "%s", "display": "%s"}\'
 				hx-indicator=".hxse-loading-%s"
 			><span class="hxse-loadmore-icon">+</span> %s</button>
 		</div>',
 		esc_attr( $hxse_id ),
 		esc_attr( $btn_id ),
 		esc_url( $endpoint ),
-		esc_attr( $results ),
+		esc_attr( $target ),
 		esc_attr( $form_id ),
 		absint( $next ),
 		esc_attr( $hxse_id ),
+		esc_attr( $hxse_id ),
+		esc_attr( $display ),
 		esc_attr( $hxse_id ),
 		esc_html( $label )
 	);
