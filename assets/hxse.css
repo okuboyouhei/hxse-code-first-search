@@ -1,0 +1,835 @@
+/*
+ * HXSE — Code-First Search: Default Styles
+ * Inherits design tokens from HXFE for visual consistency.
+ * Override freely in your theme CSS.
+ */
+
+/* =============================================
+   Design tokens
+   ============================================= */
+.hxse-wrap {
+	--hxse-color-primary:      #2563eb;
+	--hxse-color-primary-dark: #1d4ed8;
+	--hxse-color-border:       #e2e8f0;
+	--hxse-color-border-focus: #2563eb;
+	--hxse-color-bg:           #ffffff;
+	--hxse-color-bg-subtle:    #f8fafc;
+	--hxse-color-text:         #0f172a;
+	--hxse-color-text-muted:   #64748b;
+	--hxse-color-text-label:   #334155;
+	--hxse-radius-sm:          4px;
+	--hxse-radius-md:          6px;
+	--hxse-radius-lg:          8px;
+	--hxse-font-size-sm:       0.8125rem;
+	--hxse-font-size-base:     0.9375rem;
+
+	font-size: var(--hxse-font-size-base);
+	color: var(--hxse-color-text);
+	container-type: inline-size;
+}
+
+/* =============================================
+   フィルターフォーム全体
+   ============================================= */
+.hxse-filters {
+	display: flex;
+	flex-direction: column;
+	gap: 1rem;
+	margin-bottom: 1.5rem;
+	padding: 1rem 1.25rem;
+	background: var(--hxse-color-bg-subtle);
+	border: 1px solid var(--hxse-color-border);
+	border-radius: var(--hxse-radius-lg);
+}
+
+.hxse-filters-row {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 1rem;
+	align-items: flex-end;
+}
+
+.hxse-filters-actions {
+	display: flex;
+	gap: 0.5rem;
+	justify-content: flex-end;
+	padding-top: 0.25rem;
+	border-top: 1px solid var(--hxse-color-border);
+}
+
+.hxse-filter {
+	display: flex;
+	flex-direction: column;
+	gap: 0.45rem;
+	min-width: 160px;
+}
+
+.hxse-filter-label {
+	font-size: var(--hxse-font-size-sm);
+	font-weight: 500;
+	color: var(--hxse-color-text-label);
+	letter-spacing: 0.01em;
+}
+
+/* =============================================
+   入力要素
+   ============================================= */
+.hxse-input,
+.hxse-select {
+	width: 100%;
+	padding: 0.625rem 0.875rem;
+	border: 1px solid var(--hxse-color-border);
+	border-radius: var(--hxse-radius-md);
+	font-size: var(--hxse-font-size-base);
+	font-family: inherit;
+	color: var(--hxse-color-text);
+	background: var(--hxse-color-bg);
+	transition: border-color 0.15s, box-shadow 0.15s;
+	box-sizing: border-box;
+}
+
+.hxse-input::placeholder { color: #94a3b8; }
+
+.hxse-input:focus,
+.hxse-select:focus {
+	outline: none;
+	border-color: var(--hxse-color-border-focus);
+	box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+}
+
+/* =============================================
+   Radio / Checkbox
+   ============================================= */
+.hxse-radio-group,
+.hxse-checkbox-group {
+	display: flex;
+	flex-direction: column;
+	gap: 0.5rem;
+}
+
+.hxse-radio-label,
+.hxse-checkbox-label {
+	display: flex;
+	align-items: center;
+	gap: 0.5rem;
+	font-size: var(--hxse-font-size-base);
+	font-weight: normal;
+	color: var(--hxse-color-text);
+	cursor: pointer;
+	line-height: 1.5;
+}
+
+.hxse-radio-label input,
+.hxse-checkbox-label input {
+	accent-color: var(--hxse-color-primary);
+	flex-shrink: 0;
+}
+
+/* =============================================
+   Rangeフィルター
+   ============================================= */
+.hxse-range-wrap {
+	display: flex;
+	flex-direction: column;
+	gap: 0.4rem;
+}
+
+.hxse-range-display {
+	font-size: var(--hxse-font-size-sm);
+	color: var(--hxse-color-text-muted);
+}
+
+.hxse-range { width: 100%; accent-color: var(--hxse-color-primary); }
+
+/* =============================================
+   ソート
+   ============================================= */
+.hxse-sort {
+	display: flex;
+	flex-direction: column;
+	gap: 0.45rem;
+	margin-left: auto;
+}
+
+/* =============================================
+   ボタン
+   ============================================= */
+.hxse-submit,
+.hxse-reset {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	padding: 0.5rem 1.25rem;
+	border-radius: var(--hxse-radius-md);
+	font-size: var(--hxse-font-size-base);
+	font-family: inherit;
+	font-weight: 500;
+	cursor: pointer;
+	border: 1px solid transparent;
+	transition: background 0.15s, border-color 0.15s, color 0.15s;
+	white-space: nowrap;
+	line-height: 1.5;
+}
+
+.hxse-submit {
+	background: var(--hxse-color-primary);
+	color: #fff;
+	border-color: var(--hxse-color-primary);
+}
+
+.hxse-submit:hover {
+	background: var(--hxse-color-primary-dark);
+	border-color: var(--hxse-color-primary-dark);
+}
+
+.hxse-reset {
+	background: transparent;
+	color: var(--hxse-color-text-muted);
+	border-color: var(--hxse-color-border);
+}
+
+.hxse-reset:hover {
+	background: var(--hxse-color-bg-subtle);
+	color: var(--hxse-color-text);
+}
+
+/* =============================================
+   ローディング
+   ============================================= */
+.hxse-loading {
+	display: none;
+	font-size: var(--hxse-font-size-sm);
+	color: var(--hxse-color-text-muted);
+	padding: 0.5rem 0;
+}
+
+.htmx-request .hxse-loading,
+.hxse-loading.htmx-indicator { display: block; }
+
+/* =============================================
+   件数表示
+   ============================================= */
+.hxse-count {
+	margin: 0 0 0.75rem;
+	font-size: var(--hxse-font-size-sm);
+	color: var(--hxse-color-text-muted);
+	padding-top: 0.25rem;
+}
+
+/* =============================================
+   検索結果グリッド
+   ============================================= */
+.hxse-results {
+	display: grid;
+	grid-template-columns: repeat( 3, 1fr );
+	gap: 1.25rem;
+}
+
+.hxse-no-results {
+	color: var(--hxse-color-text-muted);
+	padding: 1.5rem 1rem;
+	font-size: var(--hxse-font-size-base);
+	grid-column: 1 / -1;
+}
+
+/* =============================================
+   デフォルトテンプレート（カード）
+   ============================================= */
+.hxse-post {
+	overflow: hidden;
+	transition: box-shadow 0.15s;
+}
+
+/* gridのカードスタイルはgridコンテナ内のみに適用 */
+.hxse-results--grid .hxse-post {
+	background: var(--hxse-color-bg);
+	border: 1px solid var(--hxse-color-border);
+	border-radius: var(--hxse-radius-lg);
+}
+
+.hxse-results--grid .hxse-post:hover {
+	box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+.hxse-post-link {
+	text-decoration: none;
+	color: inherit;
+	display: flex;
+	flex-direction: column;
+	height: 100%;
+}
+
+/* サムネイル：アスペクト比固定 */
+.hxse-post-thumbnail {
+	aspect-ratio: 16 / 9;
+	overflow: hidden;
+	background: var(--hxse-color-bg-subtle);
+}
+
+.hxse-post-thumbnail img {
+	width: 100%;
+	height: 100%;
+	object-fit: cover;
+	display: block;
+	transition: transform 0.2s;
+}
+
+.hxse-post:hover .hxse-post-thumbnail img {
+	transform: scale(1.03);
+}
+
+/* サムネイルなしのプレースホルダー */
+.hxse-post-thumbnail--empty {
+	aspect-ratio: 16 / 9;
+	background: var(--hxse-color-bg-subtle);
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	color: #cbd5e1;
+	font-size: 2rem;
+}
+
+.hxse-post-body {
+	padding: 0.875rem 1rem;
+	display: flex;
+	flex-direction: column;
+	gap: 0.35rem;
+	flex: 1;
+}
+
+.hxse-post-title {
+	font-size: 0.9375rem;
+	font-weight: 600;
+	color: var(--hxse-color-text);
+	margin: 0;
+	line-height: 1.5;
+	/* 2行で切る */
+	display: -webkit-box;
+	-webkit-line-clamp: 2;
+	-webkit-box-orient: vertical;
+	overflow: hidden;
+}
+
+.hxse-post-date {
+	font-size: var(--hxse-font-size-sm);
+	color: var(--hxse-color-text-muted);
+	margin: 0;
+}
+
+.hxse-post-excerpt {
+	font-size: var(--hxse-font-size-sm);
+	color: var(--hxse-color-text-muted);
+	margin: 0;
+	line-height: 1.6;
+	/* 3行で切る */
+	display: -webkit-box;
+	-webkit-line-clamp: 3;
+	-webkit-box-orient: vertical;
+	overflow: hidden;
+}
+
+/* =============================================
+   ページャー
+   ============================================= */
+.hxse-pager { margin-top: 2rem; }
+
+.hxse-pager-list {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 4px;
+	list-style: none;
+	padding: 0;
+	margin: 0;
+}
+
+.hxse-pager-btn,
+.hxse-pager-current {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	min-width: 36px;
+	height: 36px;
+	padding: 0 0.625rem;
+	border: 1px solid var(--hxse-color-border);
+	border-radius: var(--hxse-radius-md);
+	font-size: var(--hxse-font-size-sm);
+	font-family: inherit;
+	cursor: pointer;
+	background: var(--hxse-color-bg);
+	color: var(--hxse-color-text);
+	transition: background 0.15s, border-color 0.15s;
+}
+
+.hxse-pager-btn:hover {
+	background: var(--hxse-color-bg-subtle);
+	border-color: var(--hxse-color-border-focus);
+}
+
+.hxse-pager-current {
+	background: var(--hxse-color-primary);
+	color: #fff;
+	border-color: var(--hxse-color-primary);
+	cursor: default;
+}
+
+.hxse-pager-ellipsis span {
+	display: inline-flex;
+	align-items: center;
+	height: 36px;
+	padding: 0 4px;
+	color: var(--hxse-color-text-muted);
+	font-size: var(--hxse-font-size-sm);
+}
+
+/* =============================================
+   もっと見る
+   ============================================= */
+.hxse-loadmore-wrap {
+	margin-top: 1.5rem;
+}
+
+.hxse-append-area {
+	display: contents;
+}
+
+.hxse-loadmore-btn {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: 0.5rem;
+	width: 100%;
+	padding: 0.75rem 1.5rem;
+	background: transparent;
+	border: 1.5px dashed var(--hxse-color-border);
+	border-radius: var(--hxse-radius-md);
+	font-size: var(--hxse-font-size-base);
+	font-family: inherit;
+	font-weight: 500;
+	color: var(--hxse-color-text-muted);
+	cursor: pointer;
+	text-align: center;
+	transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+
+.hxse-loadmore-btn:hover {
+	background: var(--hxse-color-bg-subtle);
+	color: var(--hxse-color-primary);
+	border-color: var(--hxse-color-primary);
+}
+
+.hxse-loadmore-icon {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 20px;
+	height: 20px;
+	border-radius: 50%;
+	border: 1.5px solid currentColor;
+	font-size: 14px;
+	line-height: 1;
+	flex-shrink: 0;
+}
+
+/* =============================================
+   エラー
+   ============================================= */
+.hxse-error {
+	color: #dc2626;
+	font-size: var(--hxse-font-size-sm);
+}
+
+/* =============================================
+   フェードイン
+   ============================================= */
+.hxse-results-wrap {
+	animation: hxse-fadein 0.2s ease;
+}
+
+@keyframes hxse-fadein {
+	from { opacity: 0; transform: translateY(4px); }
+	to   { opacity: 1; transform: translateY(0); }
+}
+
+/* =============================================
+   レスポンシブ
+   ============================================= */
+
+/* タブレット: 2列（769px〜1024px） */
+@container (max-width: 1024px) {
+	.hxse-results {
+		grid-template-columns: repeat( 2, 1fr );
+	}
+}
+
+/* スマホ・タブレット: 768px以下 */
+@container (max-width: 768px) {
+	.hxse-results {
+		grid-template-columns: 1fr;
+	}
+
+	/* スマホでは横並びカード */
+	.hxse-post-link {
+		flex-direction: row;
+		align-items: flex-start;
+	}
+
+	.hxse-post-thumbnail {
+		width: 96px;
+		min-width: 96px;
+		aspect-ratio: 1 / 1;
+		border-radius: var(--hxse-radius-md);
+	}
+
+	.hxse-results--grid .hxse-post-body {
+		padding: 0.875rem 1rem;
+	}
+
+	.hxse-filters-row {
+		flex-direction: column;
+	}
+
+	.hxse-filter {
+		min-width: 100%;
+	}
+
+	.hxse-sort {
+		margin-left: 0;
+		min-width: 100%;
+	}
+
+	.hxse-filters-actions {
+		flex-direction: column-reverse;
+	}
+
+	.hxse-submit,
+	.hxse-reset {
+		width: 100%;
+	}
+}
+
+/* =============================================
+   list表示
+   ============================================= */
+.hxse-results--list {
+	display: flex;
+	flex-direction: column;
+	gap: 0;
+	border: 1px solid var(--hxse-color-border);
+	border-radius: var(--hxse-radius-lg);
+	overflow: hidden;
+	background: var(--hxse-color-bg);
+}
+
+.hxse-results--list .hxse-item {
+	border-bottom: 1px solid var(--hxse-color-border);
+	padding: 0;
+	background: transparent;
+	/* gridのカードスタイルをリセット */
+	border-radius: 0;
+	box-shadow: none;
+}
+
+.hxse-results--list .hxse-item:last-child {
+	border-bottom: none;
+}
+
+.hxse-post--list {
+	/* gridのカードスタイルはgridコンテナ限定になったのでリセット不要 */
+}
+
+.hxse-post--list .hxse-post-link {
+	flex-direction: row;
+	align-items: center;
+	gap: 1rem;
+	padding: 0.875rem 1rem;
+	border-radius: 0;
+	border: none;
+	box-shadow: none;
+	width: 100%;
+	box-sizing: border-box;
+	transition: background 0.15s;
+}
+
+.hxse-post--list .hxse-post-link:hover {
+	box-shadow: none;
+	background: var(--hxse-color-bg-subtle);
+}
+
+.hxse-post--list .hxse-post-thumbnail {
+	width: 72px;
+	min-width: 72px;
+	aspect-ratio: 1 / 1;
+	border-radius: var(--hxse-radius-md);
+	overflow: hidden;
+	flex-shrink: 0;
+	align-self: center;
+}
+
+.hxse-post--list .hxse-post-body {
+	padding: 0.125rem 0;
+	flex: 1;
+	display: flex;
+	flex-direction: column;
+	gap: 0.2rem;
+	justify-content: center;
+}
+
+.hxse-post--list .hxse-post-title {
+	font-size: var(--hxse-font-size-base);
+	font-weight: 600;
+	color: var(--hxse-color-text);
+	margin: 0;
+	-webkit-line-clamp: 1;
+	line-height: 1.5;
+}
+
+.hxse-post--list .hxse-post-date {
+	font-size: var(--hxse-font-size-sm);
+	color: var(--hxse-color-text-muted);
+	margin: 0;
+}
+
+.hxse-post--list .hxse-post-excerpt {
+	font-size: var(--hxse-font-size-sm);
+	color: var(--hxse-color-text-muted);
+	-webkit-line-clamp: 1;
+	margin: 0;
+}
+
+/* =============================================
+   table表示
+   ============================================= */
+.hxse-results--table {
+	overflow-x: auto;
+	-webkit-overflow-scrolling: touch;
+}
+
+.hxse-table {
+	width: 100%;
+	border-collapse: collapse;
+	background: var(--hxse-color-bg);
+	border: 1px solid var(--hxse-color-border);
+	border-radius: var(--hxse-radius-lg);
+	overflow: hidden;
+	font-size: var(--hxse-font-size-base);
+	table-layout: auto;
+}
+
+.hxse-table thead th {
+	background: var(--hxse-color-bg-subtle);
+	font-size: 11px;
+	font-weight: 500;
+	color: var(--hxse-color-text-muted);
+	text-transform: uppercase;
+	letter-spacing: 0.06em;
+	padding: 10px 16px;
+	border-bottom: 1px solid var(--hxse-color-border);
+	text-align: left;
+	white-space: nowrap;
+}
+
+.hxse-table thead th:nth-child(1) { width: 130px; }
+.hxse-table thead th:nth-child(2) { width: auto; }
+.hxse-table thead th:nth-child(3) { width: 150px; }
+
+.hxse-table-row td {
+	padding: 14px 16px;
+	border-bottom: 1px solid var(--hxse-color-border);
+	vertical-align: middle;
+	color: var(--hxse-color-text);
+	line-height: 1.5;
+}
+
+.hxse-table-row:last-child td {
+	border-bottom: none;
+}
+
+.hxse-table-row:hover td {
+	background: var(--hxse-color-bg-subtle);
+}
+
+.hxse-table-cell--date {
+	white-space: nowrap;
+	font-size: var(--hxse-font-size-sm);
+	color: var(--hxse-color-text-muted);
+	width: 130px;
+	min-width: 130px;
+}
+
+.hxse-table-cell--title {
+	width: auto;
+	min-width: 200px;
+	font-weight: 500;
+}
+
+.hxse-table-cell--cat {
+	font-size: var(--hxse-font-size-sm);
+	color: var(--hxse-color-text-muted);
+	white-space: nowrap;
+	width: 150px;
+	min-width: 150px;
+}
+
+.hxse-table-link {
+	text-decoration: none;
+	color: var(--hxse-color-primary);
+	font-weight: 500;
+}
+
+.hxse-table-link:hover {
+	text-decoration: underline;
+}
+
+/* スマホ: table横スクロール時の最小幅 */
+@container (max-width: 768px) {
+	.hxse-table {
+		min-width: 768px;
+	}
+
+	.hxse-post--list .hxse-post-thumbnail {
+		width: 80px;
+		min-width: 80px;
+	}
+}
+
+/* =============================================
+   件数バッジ
+   ============================================= */
+.hxse-count-badge {
+	font-size: 11px;
+	color: var(--hxse-color-text-muted);
+	font-weight: normal;
+}
+
+/* =============================================
+   モバイル折りたたみトグル
+   ============================================= */
+.hxse-filter-toggle {
+	display: none;
+	width: 100%;
+	padding: 0.625rem 1rem;
+	background: transparent;
+	border: none;
+	font-size: var(--hxse-font-size-base);
+	font-family: inherit;
+	font-weight: 500;
+	color: var(--hxse-color-text);
+	cursor: pointer;
+	text-align: left;
+	align-items: center;
+	justify-content: space-between;
+}
+
+.hxse-filter-toggle-icon {
+	font-size: 10px;
+	transition: transform 0.2s;
+}
+
+.hxse-filter-toggle[aria-expanded="true"] .hxse-filter-toggle-icon {
+	transform: rotate(180deg);
+}
+
+.hxse-filter-body {
+	display: contents; /* PCではdisplay:contentsで透過 */
+}
+
+@container (max-width: 768px) {
+	.hxse-filter-toggle {
+		display: flex;
+		border-bottom: 1px solid var(--hxse-color-border);
+		margin: -1rem -1.25rem 0;
+		padding: 0.75rem 1.25rem;
+		width: calc(100% + 2.5rem);
+	}
+
+	.hxse-filter-body {
+		display: none;
+		flex-direction: column;
+		gap: 1rem;
+		padding-top: 1rem;
+	}
+
+	.hxse-filter-body.is-open {
+		display: flex;
+	}
+
+	.hxse-filters-actions {
+		display: none;
+	}
+
+	.hxse-filter-body.is-open ~ .hxse-filters-actions {
+		display: flex;
+	}
+}
+
+/* =============================================
+   タブ切り替え
+   ============================================= */
+.hxse-tabs {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0;
+	border-bottom: 2px solid var(--hxse-color-border);
+	margin-bottom: 1.5rem;
+}
+
+.hxse-tab-btn {
+	padding: 0.625rem 1.25rem;
+	background: transparent;
+	border: none;
+	border-bottom: 2px solid transparent;
+	margin-bottom: -2px;
+	font-size: var(--hxse-font-size-base);
+	font-family: inherit;
+	font-weight: 500;
+	color: var(--hxse-color-text-muted);
+	cursor: pointer;
+	transition: color 0.15s, border-color 0.15s;
+	white-space: nowrap;
+}
+
+.hxse-tab-btn:hover {
+	color: var(--hxse-color-text);
+}
+
+.hxse-tab-btn.is-active {
+	color: var(--hxse-color-primary);
+	border-bottom-color: var(--hxse-color-primary);
+}
+
+/* =============================================
+   表示切り替えアイコン
+   ============================================= */
+.hxse-display-switcher {
+	display: flex;
+	gap: 4px;
+	justify-content: flex-end;
+	margin-bottom: 0.75rem;
+}
+
+.hxse-display-btn {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 32px;
+	height: 32px;
+	padding: 0;
+	background: transparent;
+	border: 1px solid var(--hxse-color-border);
+	border-radius: var(--hxse-radius-md);
+	color: var(--hxse-color-text-muted);
+	cursor: pointer;
+	transition: background 0.15s, border-color 0.15s, color 0.15s;
+}
+
+.hxse-display-btn:hover {
+	background: var(--hxse-color-bg-subtle);
+	color: var(--hxse-color-text);
+	border-color: var(--hxse-color-border-focus);
+}
+
+.hxse-display-btn.is-active {
+	background: var(--hxse-color-primary);
+	border-color: var(--hxse-color-primary);
+	color: #fff;
+}

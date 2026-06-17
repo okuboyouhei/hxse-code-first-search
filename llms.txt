@@ -1,0 +1,26 @@
+# HXSE — Code-First Search
+
+> Code-first search & filter for WordPress. Define filters with PHP arrays, output with a shortcode. Powered by htmx — no page reloads.
+
+Current version: 1.0.0
+WordPress.org: https://wordpress.org/plugins/hxse-code-first-search/
+GitHub: https://github.com/okuboyouhei/hxse-code-first-search
+Author: Youhei Okubo (https://zenn.dev/youheiokubo)
+
+## Docs
+
+- [ai-reference.md](./ai-reference.md): Full schema reference for AI agents
+- [readme.txt](./readme.txt): WordPress.org readme
+
+## Key Facts
+
+- Shortcode: `[hxse id="schema_key"]`
+- Filter: `hxse_schemas`
+- Filter types: search, taxonomy, meta, date, relation
+- UI types: select, radio, checkbox, range
+- Pagination modes: pager, loadmore, infinite
+- URL parameter sync with browser history support
+- Multiple instances on one page supported via `prefix`
+- htmx bundled (no jQuery required)
+- No database for schema — code only
+- AI-friendly: simple consistent schema structure
