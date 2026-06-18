@@ -3,7 +3,7 @@
  * Plugin Name: HXSE — Code-First Search
  * Plugin URI:  https://github.com/okuboyouhei/hxse-code-first-search
  * Description: Code-first search & filter for WordPress. Define filters with PHP arrays, output with a shortcode. Powered by htmx — no page reloads.
- * Version:     1.0.0
+ * Version:     1.0.1
  * Author:      Youhei Okubo
  * Author URI:  https://zenn.dev/youheiokubo
  * License:     GPL-2.0-or-later
@@ -15,7 +15,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'HXSE_VERSION',    '1.0.0' );
+define( 'HXSE_VERSION',    '1.0.1' );
 define( 'HXSE_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'HXSE_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
 

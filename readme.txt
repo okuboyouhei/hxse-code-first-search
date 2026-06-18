@@ -20,6 +20,7 @@ HXSE — Code-First Search lets you define search filters with PHP arrays and ou
 * **No page reloads** — htmx handles all filtering and pagination seamlessly.
 * **AI-friendly** — Simple, consistent schema structure that AI agents can read and write.
 * **No dependencies** — htmx is bundled. No jQuery required.
+* **Fully customizable** — All styles use CSS custom properties (design tokens). Ships with `DESIGN.md` for a complete variable reference and customization examples.
 
 **Filter Types**
 
