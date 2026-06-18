@@ -4,7 +4,7 @@ Tags: search, filter, ajax, shortcode, custom post type
 Requires at least: 6.0
 Tested up to: 7.0
 Requires PHP: 7.4
-Stable tag: 1.0.0
+Stable tag: 1.0.1
 License: GPL-2.0-or-later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -43,30 +43,30 @@ HXSE — Code-First Search lets you define search filters with PHP arrays and ou
 
 **Basic Usage**
 
-```php
-add_filter( 'hxse_schemas', function( $schemas ) {
-    $schemas['staff_search'] = [
-        'post_type' => 'staff',
-        'filters'   => [
-            ['key' => 'keyword',    'type' => 'search',   'label' => 'キーワード'],
-            ['key' => 'department', 'type' => 'taxonomy',  'label' => '部署',
-                'taxonomy' => 'department',
-                'ui'       => 'checkbox',
-            ],
-        ],
-        'pagination' => [
-            'mode'     => 'pager',
-            'per_page' => 12,
-        ],
-        'template' => 'hxse-staff.php',
-    ];
-    return $schemas;
-} );
-```
+Define a schema in your theme's `functions.php`:
 
-```
-[hxse id="staff_search"]
-```
+    add_filter( 'hxse_schemas', function( $schemas ) {
+        $schemas['staff_search'] = [
+            'post_type' => 'staff',
+            'filters'   => [
+                ['key' => 'keyword',    'type' => 'search',   'label' => 'キーワード'],
+                ['key' => 'department', 'type' => 'taxonomy',  'label' => '部署',
+                    'taxonomy' => 'department',
+                    'ui'       => 'checkbox',
+                ],
+            ],
+            'pagination' => [
+                'mode'     => 'pager',
+                'per_page' => 12,
+            ],
+            'template' => 'hxse-staff.php',
+        ];
+        return $schemas;
+    } );
+
+Then place the shortcode on any page:
+
+    [hxse id="staff_search"]
 
 == Installation ==
 
@@ -89,11 +89,19 @@ Yes. Use the `prefix` option in `url_params` to avoid parameter conflicts.
 
 Create `hxse/your-template.php` in your theme directory and specify it in the schema's `template` key.
 
-= Does it work with custom fields from HXFE or ACF? =
+= Does it work with custom fields from ACF? =
 
 Yes. Use `type: 'meta'` with the appropriate `meta_key`.
 
 == Changelog ==
+
+= 1.0.1 =
+* Grid columns now controllable via `columns` schema key (CSS variable injection).
+* Table headers customizable via `table_columns` schema key.
+* Assets now loaded only on pages containing the [hxse] shortcode.
+* Refactored hxse.js: replaced var with const/let.
+* Taxonomy conditions now auto-detect slug vs term_id.
+* Fixed: escape the_title() in templates for XSS hardening.
 
 = 1.0.0 =
 * Initial release.
