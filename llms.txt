@@ -2,7 +2,7 @@
 
 > Code-first search & filter for WordPress. Define filters with PHP arrays, output with a shortcode. Powered by htmx — no page reloads.
 
-Current version: 1.0.0
+Current version: 1.0.2
 WordPress.org: https://wordpress.org/plugins/hxse-code-first-search/
 GitHub: https://github.com/okuboyouhei/hxse-code-first-search
 Author: Youhei Okubo (https://zenn.dev/youheiokubo)
@@ -30,3 +30,18 @@ Author: Youhei Okubo (https://zenn.dev/youheiokubo)
 - Assets loaded only on pages with [hxse] shortcode
 - No database for schema — code only
 - AI-friendly: simple consistent schema structure
+
+## Version history (latest first)
+
+### v1.0.2
+- Added: SECURITY.md — security policy, vulnerability reporting, disclosure timeline
+- Added: MAINTENANCE.md — architecture overview, htmx update steps, fork guide
+- Docs: Updated ai-reference.md — design philosophy and maintainability section for AI agents
+
+### v1.0.1
+- Added: `columns` key for grid column count control
+- Added: `table_columns` key for custom table headers
+- Added: `display_switcher` for grid/list/table switching
+- Added: `tabs` for tab-based filtering
+- Added: `conditions` for fixed filter conditions without UI
+- Fixed: Assets now loaded only on pages with [hxse] shortcode

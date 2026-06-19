@@ -4,7 +4,7 @@ Tags: search, filter, ajax, shortcode, custom post type
 Requires at least: 6.0
 Tested up to: 7.0
 Requires PHP: 7.4
-Stable tag: 1.0.1
+Stable tag: 1.0.2
 License: GPL-2.0-or-later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -95,6 +95,11 @@ Create `hxse/your-template.php` in your theme directory and specify it in the sc
 Yes. Use `type: 'meta'` with the appropriate `meta_key`.
 
 == Changelog ==
+
+= 1.0.2 =
+* Added: SECURITY.md — security policy, vulnerability reporting, and disclosure timeline
+* Added: MAINTENANCE.md — architecture overview, htmx update steps, and fork guide
+* Docs: Updated ai-reference.md — added design philosophy and maintainability section for AI agents
 
 = 1.0.1 =
 * Grid columns now controllable via `columns` schema key (CSS variable injection).
