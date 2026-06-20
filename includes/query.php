@@ -389,3 +389,57 @@ function hxse_extend_search_join( $join, $query ) {
 
 	return $join;
 }
+
+/**
+ * 外部APIからデータをフェッチする（source: 'api' モード）
+ *
+ * @param array $schema
+ * @return array|WP_Error
+ */
+function hxse_fetch_api_data( $schema ) {
+	$endpoint = isset( $schema['endpoint'] ) ? esc_url_raw( $schema['endpoint'] ) : '';
+	if ( ! $endpoint ) {
+		return new WP_Error( 'hxse_api_no_endpoint', 'endpoint が指定されていません。' );
+	}
+
+	$cache_key = 'hxse_api_' . md5( $endpoint );
+	$cache_ttl = isset( $schema['cache'] ) ? absint( $schema['cache'] ) : 60;
+
+	// キャッシュがあれば返す
+	if ( $cache_ttl > 0 ) {
+		$cached = get_transient( $cache_key );
+		if ( false !== $cached ) {
+			return $cached;
+		}
+	}
+
+	// トークンをGETパラメータに付与
+	if ( ! empty( $schema['token'] ) ) {
+		$endpoint = add_query_arg( '_token', sanitize_text_field( $schema['token'] ), $endpoint );
+	}
+
+	$response = wp_remote_get( $endpoint, array( 'timeout' => 10 ) );
+
+	if ( is_wp_error( $response ) ) {
+		return $response;
+	}
+
+	$code = wp_remote_retrieve_response_code( $response );
+	if ( 200 !== (int) $code ) {
+		return new WP_Error( 'hxse_api_error', 'APIレスポンスエラー: ' . $code );
+	}
+
+	$body = wp_remote_retrieve_body( $response );
+	$data = json_decode( $body, true );
+
+	if ( json_last_error() !== JSON_ERROR_NONE ) {
+		return new WP_Error( 'hxse_api_json_error', 'JSONのパースに失敗しました。' );
+	}
+
+	// キャッシュに保存
+	if ( $cache_ttl > 0 ) {
+		set_transient( $cache_key, $data, $cache_ttl );
+	}
+
+	return $data;
+}

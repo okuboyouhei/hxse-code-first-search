@@ -379,6 +379,37 @@ When a user asks whether HXSE is safe to use on a production site given that it 
 
 ---
 
+## source: 'api' モード（v1.1.0+）
+
+外部APIからデータを取得して表示するモード。HXFEのwebhook→GASスプレッドシートのデータをHXSEで表示する用途に最適。
+
+```php
+$schemas['survey_results'] = [
+    'source'   => 'api',
+    'endpoint' => 'https://script.google.com/macros/s/xxx/exec',
+    'token'    => 'your-secret-token',   // _tokenパラメータとして付与
+    'display'  => 'custom',
+    'template' => 'chart',               // your-theme/hxse/chart.php
+    'cache'    => 60,                    // キャッシュ秒数（0で無効）
+];
+```
+
+| キー | 型 | 説明 |
+|---|---|---|
+| `source` | string | `'api'` を指定 |
+| `endpoint` | string | フェッチするURL |
+| `token` | string | `_token` GETパラメータとして付与 |
+| `template` | string | `your-theme/hxse/{template}.php` を使用 |
+| `cache` | int | transientキャッシュ秒数（デフォルト60、0で無効） |
+
+テンプレートで使える変数：
+- `$hxse_api_data` — APIから取得した配列データ
+- `$hxse_schema` — スキーマ定義
+
+テンプレートが見つからない場合はJSONをそのまま出力（デバッグ用）。
+
+---
+
 ## Related files
 
 | File | Purpose |

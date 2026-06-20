@@ -4,7 +4,7 @@ Tags: search, filter, ajax, shortcode, custom post type
 Requires at least: 6.0
 Tested up to: 7.0
 Requires PHP: 7.4
-Stable tag: 1.0.2
+Stable tag: 1.1.0
 License: GPL-2.0-or-later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -95,6 +95,11 @@ Create `hxse/your-template.php` in your theme directory and specify it in the sc
 Yes. Use `type: 'meta'` with the appropriate `meta_key`.
 
 == Changelog ==
+
+= 1.1.0 =
+* Added: `source: 'api'` mode — fetch data from external APIs (GAS, REST API, etc.) via PHP and render with a custom theme template
+* Added: `token` key — appended as `_token` GET parameter for simple API authentication
+* Added: `cache` key — transient-based caching for API responses (seconds, 0 to disable)
 
 = 1.0.2 =
 * Added: SECURITY.md — security policy, vulnerability reporting, and disclosure timeline

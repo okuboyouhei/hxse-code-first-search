@@ -57,11 +57,17 @@ function hxse_rest_handler( WP_REST_Request $request ) {
 		}
 	}
 
-	$query_args = hxse_build_query_args( $schema, $params, $page );
-	$query      = new WP_Query( $query_args );
+	$source = isset( $schema['source'] ) ? sanitize_key( $schema['source'] ) : 'wp_query';
 
 	ob_start();
-	hxse_render_results( $schema, $hxse_id, $query, $page, $is_append );
+	if ( 'api' === $source ) {
+		$api_data = hxse_fetch_api_data( $schema );
+		hxse_render_api_results( $schema, $hxse_id, $api_data );
+	} else {
+		$query_args = hxse_build_query_args( $schema, $params, $page );
+		$query      = new WP_Query( $query_args );
+		hxse_render_results( $schema, $hxse_id, $query, $page, $is_append );
+	}
 	$html = ob_get_clean();
 
 	header( 'Content-Type: text/html; charset=utf-8' );
@@ -263,4 +269,43 @@ function hxse_load_template( $schema, $hxse_id, $display_template = 'grid' ) {
 	if ( file_exists( $located ) ) {
 		include $located;
 	}
+}
+
+/**
+ * APIデータを表示する（source: 'api' モード）
+ *
+ * @param array        $schema
+ * @param string       $hxse_id
+ * @param array|WP_Error $api_data
+ */
+function hxse_render_api_results( $schema, $hxse_id, $api_data ) {
+	if ( is_wp_error( $api_data ) ) {
+		echo '<p class="hxse-no-results">' . esc_html( $api_data->get_error_message() ) . '</p>';
+		return;
+	}
+
+	if ( empty( $api_data ) || ! is_array( $api_data ) ) {
+		echo '<p class="hxse-no-results">' . esc_html__( '該当するデータが見つかりませんでした。', 'hxse-code-first-search' ) . '</p>';
+		return;
+	}
+
+	// テンプレートに渡す変数
+	$hxse_api_data   = $api_data;
+	$hxse_schema     = $schema;
+	$template_name   = isset( $schema['template'] ) ? sanitize_file_name( $schema['template'] ) : 'api';
+
+	// テーマ側のテンプレートを探す
+	$located = '';
+	$theme_path = get_stylesheet_directory() . '/hxse/' . $template_name . '.php';
+	if ( file_exists( $theme_path ) ) {
+		$located = $theme_path;
+	}
+
+	if ( ! $located ) {
+		// テンプレートが見つからない場合はJSONをそのまま出力（デバッグ用）
+		echo '<pre class="hxse-api-debug">' . esc_html( wp_json_encode( $api_data, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE ) ) . '</pre>';
+		return;
+	}
+
+	include $located;
 }

@@ -2,7 +2,7 @@
 
 > Code-first search & filter for WordPress. Define filters with PHP arrays, output with a shortcode. Powered by htmx — no page reloads.
 
-Current version: 1.0.2
+Current version: 1.1.0
 WordPress.org: https://wordpress.org/plugins/hxse-code-first-search/
 GitHub: https://github.com/okuboyouhei/hxse-code-first-search
 Author: Youhei Okubo (https://zenn.dev/youheiokubo)
@@ -32,6 +32,11 @@ Author: Youhei Okubo (https://zenn.dev/youheiokubo)
 - AI-friendly: simple consistent schema structure
 
 ## Version history (latest first)
+
+### v1.1.0
+- Added: `source: 'api'` mode — PHPで外部APIをフェッチしてテーマテンプレートに渡す
+- Added: `token` key — `_token` GETパラメータでAPI認証
+- Added: `cache` key — transientベースのAPIレスポンスキャッシュ
 
 ### v1.0.2
 - Added: SECURITY.md — security policy, vulnerability reporting, disclosure timeline
