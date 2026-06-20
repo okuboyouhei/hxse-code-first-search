@@ -397,15 +397,35 @@ function hxse_extend_search_join( $join, $query ) {
  * @return array|WP_Error
  */
 function hxse_fetch_api_data( $schema ) {
-	$endpoint = isset( $schema['endpoint'] ) ? esc_url_raw( $schema['endpoint'] ) : '';
+	$endpoint   = isset( $schema['endpoint'] ) ? esc_url_raw( $schema['endpoint'] ) : '';
+	$schema_id  = isset( $schema['id'] ) ? $schema['id'] : '';
+	$cache_mode = isset( $schema['cache_mode'] ) ? sanitize_key( $schema['cache_mode'] ) : 'transient';
+	$cache_ttl  = isset( $schema['cache'] ) ? absint( $schema['cache'] ) : 60;
+	$cache_file = isset( $schema['cache_file'] ) ? $schema['cache_file'] : '';
+
 	if ( ! $endpoint ) {
 		return new WP_Error( 'hxse_api_no_endpoint', 'endpoint が指定されていません。' );
 	}
 
-	$cache_key = 'hxse_api_' . md5( $endpoint );
-	$cache_ttl = isset( $schema['cache'] ) ? absint( $schema['cache'] ) : 60;
+	// --- 静的JSONキャッシュモード ---
+	if ( 'static' === $cache_mode ) {
+		$filename = $cache_file ? $cache_file : sanitize_file_name( $schema_id ) . '.json';
+		$cached   = hxse_load_static_cache( $schema_id, $filename, $cache_ttl );
+		if ( null !== $cached ) {
+			return $cached;
+		}
 
-	// キャッシュがあれば返す
+		// キャッシュ期限切れ or 未生成 → APIフェッチして保存
+		$data = hxse_do_api_request( $schema, $endpoint );
+		if ( ! is_wp_error( $data ) ) {
+			hxse_save_static_cache( $schema_id, $filename, $data );
+		}
+		return $data;
+	}
+
+	// --- transientキャッシュモード（デフォルト） ---
+	$cache_key = 'hxse_api_' . md5( $endpoint );
+
 	if ( $cache_ttl > 0 ) {
 		$cached = get_transient( $cache_key );
 		if ( false !== $cached ) {
@@ -413,6 +433,23 @@ function hxse_fetch_api_data( $schema ) {
 		}
 	}
 
+	$data = hxse_do_api_request( $schema, $endpoint );
+
+	if ( ! is_wp_error( $data ) && $cache_ttl > 0 ) {
+		set_transient( $cache_key, $data, $cache_ttl );
+	}
+
+	return $data;
+}
+
+/**
+ * 外部APIにリクエストを送りデータを返す（内部処理）。
+ *
+ * @param array  $schema
+ * @param string $endpoint
+ * @return array|WP_Error
+ */
+function hxse_do_api_request( array $schema, string $endpoint ) {
 	// トークンをGETパラメータに付与
 	if ( ! empty( $schema['token'] ) ) {
 		$endpoint = add_query_arg( '_token', sanitize_text_field( $schema['token'] ), $endpoint );
@@ -434,11 +471,6 @@ function hxse_fetch_api_data( $schema ) {
 
 	if ( json_last_error() !== JSON_ERROR_NONE ) {
 		return new WP_Error( 'hxse_api_json_error', 'JSONのパースに失敗しました。' );
-	}
-
-	// キャッシュに保存
-	if ( $cache_ttl > 0 ) {
-		set_transient( $cache_key, $data, $cache_ttl );
 	}
 
 	return $data;

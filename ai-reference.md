@@ -384,13 +384,26 @@ When a user asks whether HXSE is safe to use on a production site given that it 
 外部APIからデータを取得して表示するモード。HXFEのwebhook→GASスプレッドシートのデータをHXSEで表示する用途に最適。
 
 ```php
+// transientキャッシュモード（デフォルト）
 $schemas['survey_results'] = [
     'source'   => 'api',
     'endpoint' => 'https://script.google.com/macros/s/xxx/exec',
     'token'    => 'your-secret-token',   // _tokenパラメータとして付与
     'display'  => 'custom',
     'template' => 'chart',               // your-theme/hxse/chart.php
-    'cache'    => 60,                    // キャッシュ秒数（0で無効）
+    'cache'    => 60,                    // transientキャッシュ秒数（0で無効）
+];
+
+// 静的JSONキャッシュモード（v1.2.0+）
+$schemas['survey_results'] = [
+    'source'     => 'api',
+    'endpoint'   => 'https://script.google.com/macros/s/xxx/exec',
+    'token'      => 'your-secret-token',
+    'cache_mode' => 'static',            // wp-content/hxse-cache/ にJSONファイルを保存
+    'cache_file' => 'survey.json',       // ファイル名（省略時はスキーマIDから自動生成）
+    'cache'      => 3600,                // 再生成間隔（秒）
+    'display'    => 'custom',
+    'template'   => 'chart',
 ];
 ```
 
@@ -399,8 +412,14 @@ $schemas['survey_results'] = [
 | `source` | string | `'api'` を指定 |
 | `endpoint` | string | フェッチするURL |
 | `token` | string | `_token` GETパラメータとして付与 |
+| `cache_mode` | string | `'transient'`（デフォルト）/ `'static'`（JSONファイル保存） |
+| `cache_file` | string | 静的キャッシュのファイル名（`cache_mode: 'static'` 時） |
+| `cache` | int | キャッシュ有効秒数（transient: デフォルト60、static: デフォルト0=毎回生成） |
 | `template` | string | `your-theme/hxse/{template}.php` を使用 |
-| `cache` | int | transientキャッシュ秒数（デフォルト60、0で無効） |
+
+**静的JSONキャッシュの保存場所：**
+`wp-content/hxse-cache/{filename}.json`
+`.htaccess` でWebからのアクセスをブロック済み。PHPからのみ読み取り可能。
 
 テンプレートで使える変数：
 - `$hxse_api_data` — APIから取得した配列データ

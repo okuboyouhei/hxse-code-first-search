@@ -4,7 +4,7 @@ Tags: search, filter, ajax, shortcode, custom post type
 Requires at least: 6.0
 Tested up to: 7.0
 Requires PHP: 7.4
-Stable tag: 1.1.0
+Stable tag: 1.2.0
 License: GPL-2.0-or-later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -95,6 +95,14 @@ Create `hxse/your-template.php` in your theme directory and specify it in the sc
 Yes. Use `type: 'meta'` with the appropriate `meta_key`.
 
 == Changelog ==
+
+= 1.2.0 =
+* Added: `cache_mode: 'static'` — saves API responses as JSON files in `wp-content/hxse-cache/` (blocked from web access via .htaccess)
+* Added: `cache_file` key — custom filename for the static JSON cache
+* Added: `includes/cache.php` — cache directory management (init, load, save, delete)
+* Added: Admin UI — static JSON cache list with individual delete buttons (Settings → HXSE)
+* Added: `uninstall.php` — removes `wp-content/hxse-cache/` directory on plugin uninstall
+* Improved: refactored `hxse_fetch_api_data()` to support both transient and static cache modes
 
 = 1.1.0 =
 * Added: `source: 'api'` mode — fetch data from external APIs (GAS, REST API, etc.) via PHP and render with a custom theme template

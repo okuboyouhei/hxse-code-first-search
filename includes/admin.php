@@ -5,6 +5,27 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 add_action( 'admin_menu',            'hxse_register_admin_page' );
 add_action( 'admin_enqueue_scripts', 'hxse_enqueue_admin_assets' );
+add_action( 'admin_post_hxse_delete_cache', 'hxse_handle_delete_cache' );
+
+/**
+ * 静的キャッシュ削除アクションを処理する
+ */
+function hxse_handle_delete_cache(): void {
+	if ( ! current_user_can( 'manage_options' ) ) {
+		wp_die( esc_html__( '権限がありません。', 'hxse-code-first-search' ) );
+	}
+	check_admin_referer( 'hxse_delete_cache' );
+
+	$schema_id = isset( $_POST['schema_id'] ) ? sanitize_key( wp_unslash( $_POST['schema_id'] ) ) : '';
+	$filename  = isset( $_POST['cache_file'] ) ? sanitize_file_name( wp_unslash( $_POST['cache_file'] ) ) : '';
+
+	if ( $schema_id ) {
+		hxse_delete_static_cache( $schema_id, $filename );
+	}
+
+	wp_safe_redirect( wp_nonce_url( admin_url( 'options-general.php?page=hxse&cache_deleted=1' ), 'hxse_delete_cache' ) );
+	exit;
+}
 
 /**
  * 管理画面ページを登録する
@@ -178,5 +199,63 @@ function hxse_render_admin_page() {
 	}
 
 	echo '</tbody></table>';
+
+	// --- キャッシュ管理セクション ---
+	$cache_dir = WP_CONTENT_DIR . '/hxse-cache';
+	$cache_files = is_dir( $cache_dir ) ? glob( $cache_dir . '/*.json' ) : array();
+	$cache_files = $cache_files ? $cache_files : array();
+
+	// .htaccess・index.phpを除外
+	$cache_files = array_filter( $cache_files, function( $f ) {
+		$base = basename( $f );
+		return $base !== '.htaccess' && $base !== 'index.php';
+	} );
+
+	echo '<h2 style="margin-top:2rem">' . esc_html__( '静的JSONキャッシュ', 'hxse-code-first-search' ) . '</h2>';
+
+	if ( isset( $_GET['cache_deleted'] ) && check_admin_referer( 'hxse_delete_cache', '_wpnonce', false ) ) {
+		echo '<div class="notice notice-success is-dismissible"><p>' . esc_html__( 'キャッシュを削除しました。', 'hxse-code-first-search' ) . '</p></div>';
+	}
+
+	if ( empty( $cache_files ) ) {
+		echo '<p style="color:#646970">' . esc_html__( '静的JSONキャッシュはありません。', 'hxse-code-first-search' ) . '</p>';
+	} else {
+		echo '<table class="hxse-schema-table" style="margin-top:.5rem">';
+		echo '<thead><tr>';
+		echo '<th>' . esc_html__( 'ファイル名', 'hxse-code-first-search' ) . '</th>';
+		echo '<th>' . esc_html__( 'サイズ', 'hxse-code-first-search' ) . '</th>';
+		echo '<th>' . esc_html__( '最終更新', 'hxse-code-first-search' ) . '</th>';
+		echo '<th>' . esc_html__( '操作', 'hxse-code-first-search' ) . '</th>';
+		echo '</tr></thead>';
+		echo '<tbody>';
+
+		foreach ( $cache_files as $file ) {
+			$filename  = basename( $file );
+			$size      = size_format( filesize( $file ) );
+			$modified  = wp_date( 'Y-m-d H:i:s', filemtime( $file ) );
+			// スキーマIDをファイル名から推測（拡張子を除去）
+			$schema_id = str_replace( '.json', '', $filename );
+
+			echo '<tr>';
+			echo '<td><code style="font-size:12px">' . esc_html( $filename ) . '</code></td>';
+			echo '<td>' . esc_html( $size ) . '</td>';
+			echo '<td>' . esc_html( $modified ) . '</td>';
+			echo '<td>';
+			echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '" style="display:inline">';
+			echo '<input type="hidden" name="action" value="hxse_delete_cache">';
+			echo '<input type="hidden" name="schema_id" value="' . esc_attr( $schema_id ) . '">';
+			echo '<input type="hidden" name="cache_file" value="' . esc_attr( $filename ) . '">';
+			wp_nonce_field( 'hxse_delete_cache' );
+			echo '<button type="submit" class="button button-small" style="color:#b32d2e;border-color:#b32d2e" onclick="return confirm(\'' . esc_js( __( 'このキャッシュを削除しますか？', 'hxse-code-first-search' ) ) . '\')">';
+			echo esc_html__( '削除', 'hxse-code-first-search' );
+			echo '</button>';
+			echo '</form>';
+			echo '</td>';
+			echo '</tr>';
+		}
+
+		echo '</tbody></table>';
+	}
+
 	echo '</div>';
 }
