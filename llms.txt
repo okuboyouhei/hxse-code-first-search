@@ -2,7 +2,7 @@
 
 > Code-first search & filter for WordPress. Define filters with PHP arrays, output with a shortcode. Powered by htmx — no page reloads.
 
-Current version: 1.2.0
+Current version: 1.4.0
 WordPress.org: https://wordpress.org/plugins/hxse-code-first-search/
 GitHub: https://github.com/okuboyouhei/hxse-code-first-search
 Author: Youhei Okubo (https://zenn.dev/youheiokubo)
@@ -32,6 +32,19 @@ Author: Youhei Okubo (https://zenn.dev/youheiokubo)
 - AI-friendly: simple consistent schema structure
 
 ## Version history (latest first)
+
+### v1.4.0
+- Added: `source: 'rss'` — RSS 2.0・AtomフィードをPHP配列に自動変換
+- Added: `source: 'xml'` — 汎用XMLをxpathでPHP配列に変換
+- Improved: hxse_do_remote_fetchがjson/rss/xmlをsourceキーで切り替え
+
+### v1.3.0
+- Added: キャッシュマッピング（hxse_cache_mapオプション）でスキーマID→ファイル名の対応を管理
+- Added: 孤立ファイル検出・警告・一括削除
+- Added: 「今すぐ更新」ボタン（管理画面からAPIを即時フェッチ・JSON再生成）
+- Added: 全キャッシュ一括削除・合計サイズ表示
+- Improved: hxse_delete_static_cache()でマッピングも同時削除
+- Improved: uninstall.phpでhxse_cache_mapオプションも削除
 
 ### v1.2.0
 - Added: `cache_mode: 'static'` — APIレスポンスをJSONファイルとして保存（wp-content/hxse-cache/、.htaccessでWebアクセスをブロック）

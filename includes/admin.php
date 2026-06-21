@@ -5,7 +5,10 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 add_action( 'admin_menu',            'hxse_register_admin_page' );
 add_action( 'admin_enqueue_scripts', 'hxse_enqueue_admin_assets' );
-add_action( 'admin_post_hxse_delete_cache', 'hxse_handle_delete_cache' );
+add_action( 'admin_post_hxse_delete_cache',    'hxse_handle_delete_cache' );
+add_action( 'admin_post_hxse_refresh_cache',   'hxse_handle_refresh_cache' );
+add_action( 'admin_post_hxse_delete_orphans',  'hxse_handle_delete_orphans' );
+add_action( 'admin_post_hxse_delete_all_cache','hxse_handle_delete_all_cache' );
 
 /**
  * 静的キャッシュ削除アクションを処理する
@@ -24,6 +27,73 @@ function hxse_handle_delete_cache(): void {
 	}
 
 	wp_safe_redirect( wp_nonce_url( admin_url( 'options-general.php?page=hxse&cache_deleted=1' ), 'hxse_delete_cache' ) );
+	exit;
+}
+
+/**
+ * 静的キャッシュ今すぐ更新アクションを処理する
+ */
+function hxse_handle_refresh_cache(): void {
+	if ( ! current_user_can( 'manage_options' ) ) {
+		wp_die( esc_html__( '権限がありません。', 'hxse-code-first-search' ) );
+	}
+	check_admin_referer( 'hxse_refresh_cache' );
+
+	$schema_id = isset( $_POST['schema_id'] ) ? sanitize_key( wp_unslash( $_POST['schema_id'] ) ) : '';
+
+	if ( $schema_id ) {
+		$schemas = hxse_get_schemas();
+		if ( isset( $schemas[ $schema_id ] ) ) {
+			$schema   = $schemas[ $schema_id ];
+			$endpoint = isset( $schema['endpoint'] ) ? esc_url_raw( $schema['endpoint'] ) : '';
+			$filename = isset( $schema['cache_file'] ) ? sanitize_file_name( $schema['cache_file'] ) : sanitize_file_name( $schema_id ) . '.json';
+
+			if ( $endpoint ) {
+				$data = hxse_do_api_request( $schema, $endpoint );
+				if ( ! is_wp_error( $data ) ) {
+					hxse_save_static_cache( $schema_id, $filename, $data );
+				}
+			}
+		}
+	}
+
+	wp_safe_redirect( wp_nonce_url( admin_url( 'options-general.php?page=hxse&cache_refreshed=1' ), 'hxse_delete_cache' ) );
+	exit;
+}
+
+/**
+ * 孤立ファイル一括削除アクションを処理する
+ */
+function hxse_handle_delete_orphans(): void {
+	if ( ! current_user_can( 'manage_options' ) ) {
+		wp_die( esc_html__( '権限がありません。', 'hxse-code-first-search' ) );
+	}
+	check_admin_referer( 'hxse_delete_orphans' );
+	hxse_cache_delete_orphans();
+	wp_safe_redirect( wp_nonce_url( admin_url( 'options-general.php?page=hxse&orphans_deleted=1' ), 'hxse_delete_cache' ) );
+	exit;
+}
+
+/**
+ * 全キャッシュ一括削除アクションを処理する
+ */
+function hxse_handle_delete_all_cache(): void {
+	if ( ! current_user_can( 'manage_options' ) ) {
+		wp_die( esc_html__( '権限がありません。', 'hxse-code-first-search' ) );
+	}
+	check_admin_referer( 'hxse_delete_all_cache' );
+
+	$dir   = WP_CONTENT_DIR . '/hxse-cache';
+	$files = is_dir( $dir ) ? glob( $dir . '/*.json' ) : array();
+	if ( $files ) {
+		foreach ( $files as $file ) {
+			// phpcs:ignore WordPress.WP.AlternativeFunctions.unlink_unlink
+			unlink( $file );
+		}
+	}
+	update_option( 'hxse_cache_map', array(), false );
+
+	wp_safe_redirect( wp_nonce_url( admin_url( 'options-general.php?page=hxse&all_deleted=1' ), 'hxse_delete_cache' ) );
 	exit;
 }
 
@@ -201,27 +271,70 @@ function hxse_render_admin_page() {
 	echo '</tbody></table>';
 
 	// --- キャッシュ管理セクション ---
-	$cache_dir = WP_CONTENT_DIR . '/hxse-cache';
+	$cache_dir   = WP_CONTENT_DIR . '/hxse-cache';
 	$cache_files = is_dir( $cache_dir ) ? glob( $cache_dir . '/*.json' ) : array();
 	$cache_files = $cache_files ? $cache_files : array();
-
-	// .htaccess・index.phpを除外
-	$cache_files = array_filter( $cache_files, function( $f ) {
-		$base = basename( $f );
-		return $base !== '.htaccess' && $base !== 'index.php';
-	} );
+	$cache_map   = hxse_cache_map_get();
+	$orphans     = hxse_cache_orphan_files();
 
 	echo '<h2 style="margin-top:2rem">' . esc_html__( '静的JSONキャッシュ', 'hxse-code-first-search' ) . '</h2>';
 
-	if ( isset( $_GET['cache_deleted'] ) && check_admin_referer( 'hxse_delete_cache', '_wpnonce', false ) ) {
-		echo '<div class="notice notice-success is-dismissible"><p>' . esc_html__( 'キャッシュを削除しました。', 'hxse-code-first-search' ) . '</p></div>';
+	// フラッシュメッセージ（nonceで検証）
+	// phpcs:disable WordPress.Security.NonceVerification.Recommended
+	$has_flash = isset( $_GET['cache_deleted'] ) || isset( $_GET['cache_refreshed'] ) || isset( $_GET['orphans_deleted'] ) || isset( $_GET['all_deleted'] );
+	// phpcs:enable WordPress.Security.NonceVerification.Recommended
+
+	if ( $has_flash && check_admin_referer( 'hxse_delete_cache', '_wpnonce', false ) ) {
+		// phpcs:disable WordPress.Security.NonceVerification.Recommended
+		if ( isset( $_GET['cache_deleted'] ) ) {
+			echo '<div class="notice notice-success is-dismissible"><p>' . esc_html__( 'キャッシュを削除しました。', 'hxse-code-first-search' ) . '</p></div>';
+		} elseif ( isset( $_GET['cache_refreshed'] ) ) {
+			echo '<div class="notice notice-success is-dismissible"><p>' . esc_html__( 'キャッシュを更新しました。', 'hxse-code-first-search' ) . '</p></div>';
+		} elseif ( isset( $_GET['orphans_deleted'] ) ) {
+			echo '<div class="notice notice-success is-dismissible"><p>' . esc_html__( '孤立ファイルを削除しました。', 'hxse-code-first-search' ) . '</p></div>';
+		} elseif ( isset( $_GET['all_deleted'] ) ) {
+			echo '<div class="notice notice-success is-dismissible"><p>' . esc_html__( '全キャッシュを削除しました。', 'hxse-code-first-search' ) . '</p></div>';
+		}
+		// phpcs:enable WordPress.Security.NonceVerification.Recommended
+	}
+
+	// 孤立ファイル警告
+	if ( ! empty( $orphans ) ) {
+		echo '<div class="notice notice-warning">';
+		echo '<p><strong>' . esc_html__( '孤立したキャッシュファイルがあります。', 'hxse-code-first-search' ) . '</strong> ';
+		echo esc_html__( 'スキーマから削除されたか、cache_fileが変更されたファイルです。', 'hxse-code-first-search' ) . '</p>';
+		echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '" style="display:inline">';
+		echo '<input type="hidden" name="action" value="hxse_delete_orphans">';
+		wp_nonce_field( 'hxse_delete_orphans' );
+		echo '<button type="submit" class="button button-small" style="color:#b32d2e;border-color:#b32d2e">';
+		// translators: %d: number of orphaned cache files
+		echo esc_html( sprintf( __( '孤立ファイルを削除（%d件）', 'hxse-code-first-search' ), count( $orphans ) ) );
+		echo '</button></form>';
+		echo '</div>';
 	}
 
 	if ( empty( $cache_files ) ) {
 		echo '<p style="color:#646970">' . esc_html__( '静的JSONキャッシュはありません。', 'hxse-code-first-search' ) . '</p>';
 	} else {
-		echo '<table class="hxse-schema-table" style="margin-top:.5rem">';
+
+		// 合計サイズ表示 + 一括削除
+		$total_size = array_sum( array_map( 'filesize', $cache_files ) );
+		echo '<div style="display:flex;align-items:center;gap:1rem;margin-bottom:.75rem">';
+		echo '<span style="color:#646970;font-size:13px">';
+		// translators: %1$d: number of cache files, %2$s: total file size
+		echo esc_html( sprintf( __( '%1$d件・合計 %2$s', 'hxse-code-first-search' ), count( $cache_files ), size_format( $total_size ) ) );
+		echo '</span>';
+		echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '">';
+		echo '<input type="hidden" name="action" value="hxse_delete_all_cache">';
+		wp_nonce_field( 'hxse_delete_all_cache' );
+		echo '<button type="submit" class="button button-small" style="color:#b32d2e;border-color:#b32d2e" onclick="return confirm(\'' . esc_js( __( '全てのキャッシュを削除しますか？', 'hxse-code-first-search' ) ) . '\')">';
+		echo esc_html__( '全て削除', 'hxse-code-first-search' );
+		echo '</button></form>';
+		echo '</div>';
+
+		echo '<table class="hxse-schema-table">';
 		echo '<thead><tr>';
+		echo '<th>' . esc_html__( 'スキーマID', 'hxse-code-first-search' ) . '</th>';
 		echo '<th>' . esc_html__( 'ファイル名', 'hxse-code-first-search' ) . '</th>';
 		echo '<th>' . esc_html__( 'サイズ', 'hxse-code-first-search' ) . '</th>';
 		echo '<th>' . esc_html__( '最終更新', 'hxse-code-first-search' ) . '</th>';
@@ -229,27 +342,44 @@ function hxse_render_admin_page() {
 		echo '</tr></thead>';
 		echo '<tbody>';
 
-		foreach ( $cache_files as $file ) {
-			$filename  = basename( $file );
-			$size      = size_format( filesize( $file ) );
-			$modified  = wp_date( 'Y-m-d H:i:s', filemtime( $file ) );
-			// スキーマIDをファイル名から推測（拡張子を除去）
-			$schema_id = str_replace( '.json', '', $filename );
+		// マッピングから登録済みキャッシュを表示
+		foreach ( $cache_map as $schema_id => $filename ) {
+			$path = $cache_dir . '/' . $filename;
+			if ( ! file_exists( $path ) ) {
+				continue;
+			}
+			$size     = size_format( filesize( $path ) );
+			$modified = wp_date( 'Y-m-d H:i:s', filemtime( $path ) );
+			$schemas  = hxse_get_schemas();
+			$has_api  = isset( $schemas[ $schema_id ]['source'] ) && 'api' === $schemas[ $schema_id ]['source'];
 
 			echo '<tr>';
+			echo '<td><span class="hxse-schema-id">' . esc_html( $schema_id ) . '</span></td>';
 			echo '<td><code style="font-size:12px">' . esc_html( $filename ) . '</code></td>';
 			echo '<td>' . esc_html( $size ) . '</td>';
 			echo '<td>' . esc_html( $modified ) . '</td>';
-			echo '<td>';
-			echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '" style="display:inline">';
+			echo '<td style="display:flex;gap:6px;flex-wrap:wrap">';
+
+			// 今すぐ更新ボタン（APIスキーマのみ）
+			if ( $has_api ) {
+				echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '">';
+				echo '<input type="hidden" name="action" value="hxse_refresh_cache">';
+				echo '<input type="hidden" name="schema_id" value="' . esc_attr( $schema_id ) . '">';
+				wp_nonce_field( 'hxse_refresh_cache' );
+				echo '<button type="submit" class="button button-small">🔄 ' . esc_html__( '今すぐ更新', 'hxse-code-first-search' ) . '</button>';
+				echo '</form>';
+			}
+
+			// 削除ボタン
+			echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '">';
 			echo '<input type="hidden" name="action" value="hxse_delete_cache">';
 			echo '<input type="hidden" name="schema_id" value="' . esc_attr( $schema_id ) . '">';
 			echo '<input type="hidden" name="cache_file" value="' . esc_attr( $filename ) . '">';
 			wp_nonce_field( 'hxse_delete_cache' );
 			echo '<button type="submit" class="button button-small" style="color:#b32d2e;border-color:#b32d2e" onclick="return confirm(\'' . esc_js( __( 'このキャッシュを削除しますか？', 'hxse-code-first-search' ) ) . '\')">';
 			echo esc_html__( '削除', 'hxse-code-first-search' );
-			echo '</button>';
-			echo '</form>';
+			echo '</button></form>';
+
 			echo '</td>';
 			echo '</tr>';
 		}

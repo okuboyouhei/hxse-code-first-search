@@ -4,7 +4,7 @@ Tags: search, filter, ajax, shortcode, custom post type
 Requires at least: 6.0
 Tested up to: 7.0
 Requires PHP: 7.4
-Stable tag: 1.2.0
+Stable tag: 1.4.0
 License: GPL-2.0-or-later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -95,6 +95,24 @@ Create `hxse/your-template.php` in your theme directory and specify it in the sc
 Yes. Use `type: 'meta'` with the appropriate `meta_key`.
 
 == Changelog ==
+
+= 1.4.0 =
+* Added: `source: 'rss'` mode — fetches RSS 2.0 and Atom feeds and converts to PHP array automatically
+* Added: `source: 'xml'` mode — fetches any XML and converts to PHP array using `xpath` key
+* Added: `hxse_parse_rss()` — RSS 2.0 / Atom parser
+* Added: `hxse_parse_xml()` — generic XML parser with xpath support
+* Added: `hxse_simplexml_to_array()` — recursive SimpleXMLElement to array converter
+* Improved: `hxse_do_remote_fetch()` now handles json / rss / xml based on `source` key
+* Improved: backward-compatible `hxse_do_api_request()` alias retained
+
+= 1.3.0 =
+* Added: Cache mapping (`hxse_cache_map` option) — tracks schema ID → filename relationships to detect orphaned files
+* Added: Orphan file detection — warns when JSON files exist without a corresponding schema
+* Added: "今すぐ更新" button — manually re-fetches API and regenerates JSON from admin UI (API schemas only)
+* Added: Bulk delete all cache button with total file size display
+* Added: Delete orphaned files button in admin UI
+* Improved: `hxse_delete_static_cache()` now also removes the mapping entry
+* Improved: `uninstall.php` now also deletes the `hxse_cache_map` option
 
 = 1.2.0 =
 * Added: `cache_mode: 'static'` — saves API responses as JSON files in `wp-content/hxse-cache/` (blocked from web access via .htaccess)

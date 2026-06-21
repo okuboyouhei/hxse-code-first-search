@@ -37,3 +37,6 @@ $hxse_cache_dir = WP_CONTENT_DIR . '/hxse-cache';
 if ( is_dir( $hxse_cache_dir ) ) {
 	hxse_uninstall_rmdir( $hxse_cache_dir );
 }
+
+// キャッシュマッピングのオプションを削除
+delete_option( 'hxse_cache_map' );

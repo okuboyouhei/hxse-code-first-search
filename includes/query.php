@@ -399,6 +399,7 @@ function hxse_extend_search_join( $join, $query ) {
 function hxse_fetch_api_data( $schema ) {
 	$endpoint   = isset( $schema['endpoint'] ) ? esc_url_raw( $schema['endpoint'] ) : '';
 	$schema_id  = isset( $schema['id'] ) ? $schema['id'] : '';
+	$source     = isset( $schema['source'] ) ? sanitize_key( $schema['source'] ) : 'api';
 	$cache_mode = isset( $schema['cache_mode'] ) ? sanitize_key( $schema['cache_mode'] ) : 'transient';
 	$cache_ttl  = isset( $schema['cache'] ) ? absint( $schema['cache'] ) : 60;
 	$cache_file = isset( $schema['cache_file'] ) ? $schema['cache_file'] : '';
@@ -415,8 +416,7 @@ function hxse_fetch_api_data( $schema ) {
 			return $cached;
 		}
 
-		// キャッシュ期限切れ or 未生成 → APIフェッチして保存
-		$data = hxse_do_api_request( $schema, $endpoint );
+		$data = hxse_do_remote_fetch( $schema, $endpoint, $source );
 		if ( ! is_wp_error( $data ) ) {
 			hxse_save_static_cache( $schema_id, $filename, $data );
 		}
@@ -424,7 +424,7 @@ function hxse_fetch_api_data( $schema ) {
 	}
 
 	// --- transientキャッシュモード（デフォルト） ---
-	$cache_key = 'hxse_api_' . md5( $endpoint );
+	$cache_key = 'hxse_api_' . md5( $endpoint . $source );
 
 	if ( $cache_ttl > 0 ) {
 		$cached = get_transient( $cache_key );
@@ -433,7 +433,7 @@ function hxse_fetch_api_data( $schema ) {
 		}
 	}
 
-	$data = hxse_do_api_request( $schema, $endpoint );
+	$data = hxse_do_remote_fetch( $schema, $endpoint, $source );
 
 	if ( ! is_wp_error( $data ) && $cache_ttl > 0 ) {
 		set_transient( $cache_key, $data, $cache_ttl );
@@ -443,13 +443,14 @@ function hxse_fetch_api_data( $schema ) {
 }
 
 /**
- * 外部APIにリクエストを送りデータを返す（内部処理）。
+ * エンドポイントをフェッチしてsourceに応じてパースする（内部処理）。
  *
  * @param array  $schema
  * @param string $endpoint
+ * @param string $source  'api' | 'rss' | 'xml'
  * @return array|WP_Error
  */
-function hxse_do_api_request( array $schema, string $endpoint ) {
+function hxse_do_remote_fetch( array $schema, string $endpoint, string $source = 'api' ) {
 	// トークンをGETパラメータに付与
 	if ( ! empty( $schema['token'] ) ) {
 		$endpoint = add_query_arg( '_token', sanitize_text_field( $schema['token'] ), $endpoint );
@@ -463,15 +464,162 @@ function hxse_do_api_request( array $schema, string $endpoint ) {
 
 	$code = wp_remote_retrieve_response_code( $response );
 	if ( 200 !== (int) $code ) {
-		return new WP_Error( 'hxse_api_error', 'APIレスポンスエラー: ' . $code );
+		return new WP_Error( 'hxse_api_error', 'レスポンスエラー: ' . $code );
 	}
 
 	$body = wp_remote_retrieve_body( $response );
-	$data = json_decode( $body, true );
 
+	// RSSモード
+	if ( 'rss' === $source ) {
+		return hxse_parse_rss( $body );
+	}
+
+	// 汎用XMLモード
+	if ( 'xml' === $source ) {
+		$xpath = isset( $schema['xpath'] ) ? $schema['xpath'] : '//item';
+		return hxse_parse_xml( $body, $xpath );
+	}
+
+	// JSONモード（デフォルト）
+	$data = json_decode( $body, true );
 	if ( json_last_error() !== JSON_ERROR_NONE ) {
 		return new WP_Error( 'hxse_api_json_error', 'JSONのパースに失敗しました。' );
 	}
 
 	return $data;
+}
+
+/**
+ * RSS/AtomフィードをパースしてPHP配列に変換する。
+ *
+ * @param string $body XMLボディ
+ * @return array|WP_Error
+ */
+function hxse_parse_rss( string $body ) {
+	libxml_use_internal_errors( true );
+	$xml = simplexml_load_string( $body );
+
+	if ( false === $xml ) {
+		return new WP_Error( 'hxse_rss_parse_error', 'RSSのパースに失敗しました。' );
+	}
+
+	$items = array();
+
+	// RSS 2.0
+	if ( isset( $xml->channel->item ) ) {
+		foreach ( $xml->channel->item as $item ) {
+			$items[] = array(
+				'title'       => (string) $item->title,
+				'link'        => (string) $item->link,
+				'description' => (string) $item->description,
+				'pubDate'     => (string) $item->pubDate,
+				'guid'        => (string) $item->guid,
+			);
+		}
+		return $items;
+	}
+
+	// Atom
+	$ns = $xml->getNamespaces( true );
+	if ( isset( $ns[''] ) && strpos( $ns[''], 'atom' ) !== false || $xml->getName() === 'feed' ) {
+		foreach ( $xml->entry as $entry ) {
+			$link = '';
+			foreach ( $entry->link as $l ) {
+				$attrs = $l->attributes();
+				if ( ! isset( $attrs['rel'] ) || 'alternate' === (string) $attrs['rel'] ) {
+					$link = (string) $attrs['href'];
+					break;
+				}
+			}
+			$items[] = array(
+				'title'       => (string) $entry->title,
+				'link'        => $link,
+				'description' => (string) $entry->summary,
+				'pubDate'     => (string) $entry->updated,
+				'guid'        => (string) $entry->id,
+			);
+		}
+		return $items;
+	}
+
+	return new WP_Error( 'hxse_rss_unknown_format', '未知のフィード形式です。' );
+}
+
+/**
+ * 汎用XMLをxpathでパースしてPHP配列に変換する。
+ *
+ * @param string $body  XMLボディ
+ * @param string $xpath 繰り返し要素のxpath（例: '//item'）
+ * @return array|WP_Error
+ */
+function hxse_parse_xml( string $body, string $xpath ) {
+	libxml_use_internal_errors( true );
+	$xml = simplexml_load_string( $body );
+
+	if ( false === $xml ) {
+		return new WP_Error( 'hxse_xml_parse_error', 'XMLのパースに失敗しました。' );
+	}
+
+	$nodes = $xml->xpath( $xpath );
+	if ( false === $nodes || empty( $nodes ) ) {
+		return array();
+	}
+
+	$items = array();
+	foreach ( $nodes as $node ) {
+		// SimpleXMLElementをネストした配列に変換
+		$items[] = hxse_simplexml_to_array( $node );
+	}
+
+	return $items;
+}
+
+/**
+ * SimpleXMLElementを再帰的にPHP配列に変換する。
+ *
+ * @param \SimpleXMLElement $xml
+ * @return array
+ */
+function hxse_simplexml_to_array( \SimpleXMLElement $xml ): array {
+	$result = array();
+
+	// 属性
+	foreach ( $xml->attributes() as $key => $value ) {
+		$result[ '@' . $key ] = (string) $value;
+	}
+
+	// 子要素
+	foreach ( $xml->children() as $key => $child ) {
+		$child_array = hxse_simplexml_to_array( $child );
+		if ( isset( $result[ $key ] ) ) {
+			if ( ! is_array( $result[ $key ] ) || ! isset( $result[ $key ][0] ) ) {
+				$result[ $key ] = array( $result[ $key ] );
+			}
+			$result[ $key ][] = $child_array;
+		} else {
+			$result[ $key ] = $child_array;
+		}
+	}
+
+	// テキストノード
+	$text = trim( (string) $xml );
+	if ( $text !== '' && empty( $result ) ) {
+		return $text;
+	}
+	if ( $text !== '' ) {
+		$result['_text'] = $text;
+	}
+
+	return $result;
+}
+
+/**
+ * 後方互換：hxse_do_api_requestの旧名称エイリアス
+ *
+ * @param array  $schema
+ * @param string $endpoint
+ * @return array|WP_Error
+ */
+function hxse_do_api_request( array $schema, string $endpoint ) {
+	return hxse_do_remote_fetch( $schema, $endpoint, 'api' );
 }

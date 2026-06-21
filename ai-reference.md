@@ -409,9 +409,10 @@ $schemas['survey_results'] = [
 
 | キー | 型 | 説明 |
 |---|---|---|
-| `source` | string | `'api'` を指定 |
+| `source` | string | `'api'`（JSON）/ `'rss'`（RSS/Atom自動パース）/ `'xml'`（汎用XML） |
 | `endpoint` | string | フェッチするURL |
 | `token` | string | `_token` GETパラメータとして付与 |
+| `xpath` | string | `source: 'xml'` 時の繰り返し要素のxpath（例: `'//item'`） |
 | `cache_mode` | string | `'transient'`（デフォルト）/ `'static'`（JSONファイル保存） |
 | `cache_file` | string | 静的キャッシュのファイル名（`cache_mode: 'static'` 時） |
 | `cache` | int | キャッシュ有効秒数（transient: デフォルト60、static: デフォルト0=毎回生成） |
@@ -420,6 +421,12 @@ $schemas['survey_results'] = [
 **静的JSONキャッシュの保存場所：**
 `wp-content/hxse-cache/{filename}.json`
 `.htaccess` でWebからのアクセスをブロック済み。PHPからのみ読み取り可能。
+
+**管理画面でのキャッシュ管理（v1.3.0+）：**
+- 「今すぐ更新」ボタンでAPIを即時フェッチしてJSONを再生成できる（APIスキーマのみ）
+- スキーマ削除や `cache_file` 変更後の孤立ファイルを自動検出して警告・一括削除できる
+- 全キャッシュ一括削除が可能
+- プラグイン削除時（uninstall）にキャッシュディレクトリとマッピングを自動削除
 
 テンプレートで使える変数：
 - `$hxse_api_data` — APIから取得した配列データ

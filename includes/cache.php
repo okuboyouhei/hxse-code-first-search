@@ -118,7 +118,13 @@ function hxse_save_static_cache( string $schema_id, string $filename, array $dat
 	}
 
 	// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
-	return false !== file_put_contents( $path, $json );
+	$result = false !== file_put_contents( $path, $json );
+
+	if ( $result ) {
+		hxse_cache_map_add( $schema_id, $filename );
+	}
+
+	return $result;
 }
 
 /**
@@ -130,6 +136,67 @@ function hxse_save_static_cache( string $schema_id, string $filename, array $dat
 function hxse_delete_static_cache( string $schema_id, string $filename = '' ): void {
 	$path = hxse_cache_file_path( $schema_id, $filename );
 	if ( file_exists( $path ) ) {
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.unlink_unlink
+		unlink( $path );
+	}
+	hxse_cache_map_remove( $schema_id );
+}
+
+/**
+ * キャッシュマッピング（スキーマID → ファイル名）を取得する。
+ *
+ * @return array
+ */
+function hxse_cache_map_get(): array {
+	return (array) get_option( 'hxse_cache_map', array() );
+}
+
+/**
+ * キャッシュマッピングにエントリを追加する。
+ *
+ * @param string $schema_id
+ * @param string $filename
+ */
+function hxse_cache_map_add( string $schema_id, string $filename ): void {
+	$map               = hxse_cache_map_get();
+	$map[ $schema_id ] = $filename;
+	update_option( 'hxse_cache_map', $map, false );
+}
+
+/**
+ * キャッシュマッピングからエントリを削除する。
+ *
+ * @param string $schema_id
+ */
+function hxse_cache_map_remove( string $schema_id ): void {
+	$map = hxse_cache_map_get();
+	unset( $map[ $schema_id ] );
+	update_option( 'hxse_cache_map', $map, false );
+}
+
+/**
+ * マッピングに存在しない孤立JSONファイルの一覧を返す。
+ *
+ * @return array ファイルパスの配列
+ */
+function hxse_cache_orphan_files(): array {
+	$dir   = hxse_cache_dir();
+	$files = is_dir( $dir ) ? glob( $dir . '/*.json' ) : array();
+	$files = $files ? $files : array();
+	$map   = hxse_cache_map_get();
+
+	$mapped_files = array_values( $map );
+
+	return array_filter( $files, function( $path ) use ( $mapped_files ) {
+		return ! in_array( basename( $path ), $mapped_files, true );
+	} );
+}
+
+/**
+ * 孤立JSONファイルを全て削除する。
+ */
+function hxse_cache_delete_orphans(): void {
+	foreach ( hxse_cache_orphan_files() as $path ) {
 		// phpcs:ignore WordPress.WP.AlternativeFunctions.unlink_unlink
 		unlink( $path );
 	}
