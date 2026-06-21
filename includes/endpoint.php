@@ -60,7 +60,7 @@ function hxse_rest_handler( WP_REST_Request $request ) {
 	$source = isset( $schema['source'] ) ? sanitize_key( $schema['source'] ) : 'wp_query';
 
 	ob_start();
-	if ( 'api' === $source ) {
+	if ( in_array( $source, array( 'api', 'rss', 'xml' ), true ) ) {
 		$api_data = hxse_fetch_api_data( $schema );
 		hxse_render_api_results( $schema, $hxse_id, $api_data );
 	} else {
@@ -308,4 +308,40 @@ function hxse_render_api_results( $schema, $hxse_id, $api_data ) {
 	}
 
 	include $located;
+}
+
+/**
+ * マージデータを表示する（sources モード）。
+ *
+ * @param array $schema
+ * @param string $hxse_id
+ * @param array  $merged_data 正規化・マージ済みのアイテム配列
+ */
+function hxse_render_merged_results( $schema, $hxse_id, $merged_data ) {
+	if ( empty( $merged_data ) || ! is_array( $merged_data ) ) {
+		echo '<p class="hxse-no-results">' . esc_html__( '表示できる項目がありません。', 'hxse-code-first-search' ) . '</p>';
+		return;
+	}
+
+	// テンプレートに渡す変数
+	$hxse_merged_data = $merged_data;
+	$hxse_schema      = $schema;
+	$template_name    = isset( $schema['template'] ) ? sanitize_file_name( $schema['template'] ) : 'merged';
+
+	// テーマ側のテンプレートを優先
+	$theme_path = get_stylesheet_directory() . '/hxse/' . $template_name . '.php';
+	if ( file_exists( $theme_path ) ) {
+		include $theme_path;
+		return;
+	}
+
+	// プラグイン同梱のデフォルトテンプレート
+	$plugin_path = HXSE_PLUGIN_DIR . 'templates/merged.php';
+	if ( file_exists( $plugin_path ) ) {
+		include $plugin_path;
+		return;
+	}
+
+	// フォールバック（デバッグ用）
+	echo '<pre class="hxse-merged-debug">' . esc_html( wp_json_encode( $merged_data, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE ) ) . '</pre>';
 }

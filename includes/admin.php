@@ -45,11 +45,12 @@ function hxse_handle_refresh_cache(): void {
 		$schemas = hxse_get_schemas();
 		if ( isset( $schemas[ $schema_id ] ) ) {
 			$schema   = $schemas[ $schema_id ];
+			$source   = isset( $schema['source'] ) ? sanitize_key( $schema['source'] ) : 'api';
 			$endpoint = isset( $schema['endpoint'] ) ? esc_url_raw( $schema['endpoint'] ) : '';
 			$filename = isset( $schema['cache_file'] ) ? sanitize_file_name( $schema['cache_file'] ) : sanitize_file_name( $schema_id ) . '.json';
 
 			if ( $endpoint ) {
-				$data = hxse_do_api_request( $schema, $endpoint );
+				$data = hxse_do_remote_fetch( $schema, $endpoint, $source );
 				if ( ! is_wp_error( $data ) ) {
 					hxse_save_static_cache( $schema_id, $filename, $data );
 				}
@@ -351,7 +352,7 @@ function hxse_render_admin_page() {
 			$size     = size_format( filesize( $path ) );
 			$modified = wp_date( 'Y-m-d H:i:s', filemtime( $path ) );
 			$schemas  = hxse_get_schemas();
-			$has_api  = isset( $schemas[ $schema_id ]['source'] ) && 'api' === $schemas[ $schema_id ]['source'];
+			$has_api  = isset( $schemas[ $schema_id ]['source'] ) && in_array( $schemas[ $schema_id ]['source'], array( 'api', 'rss', 'xml' ), true );
 
 			echo '<tr>';
 			echo '<td><span class="hxse-schema-id">' . esc_html( $schema_id ) . '</span></td>';

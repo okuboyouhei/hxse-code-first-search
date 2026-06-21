@@ -436,6 +436,50 @@ $schemas['survey_results'] = [
 
 ---
 
+## マージモード（sources, v1.5.0+）
+
+複数のデータソース（WordPress投稿・RSS・API・XML）を1つの時系列リストに統合する。
+
+```php
+$schemas['mixed_news'] = [
+    'sources' => [
+        [
+            'type'      => 'wp_query',
+            'post_type' => 'post',
+            'label'     => 'お知らせ',       // バッジ表示用
+            'limit'     => 20,
+        ],
+        [
+            'type'     => 'rss',
+            'endpoint' => 'https://zenn.dev/youheiokubo/feed',
+            'label'    => 'Zenn',
+        ],
+    ],
+    'orderby'  => 'date',     // date | title
+    'order'    => 'desc',     // desc | asc
+    'limit'    => 20,         // マージ後の総件数
+    'cache'    => 600,
+    'template' => 'merged',   // your-theme/hxse/merged.php（省略時は同梱テンプレート）
+];
+```
+
+各ソースは共通フォーマットに正規化される（title / link / date / excerpt / source / raw）。テンプレートでは `$hxse_merged_data` に正規化・ソート済みの配列が渡される。
+
+| sourcesのtype | 説明 |
+|---|---|
+| `wp_query` | WordPress投稿（post_type指定可） |
+| `rss` | RSS/Atomフィード（endpoint指定） |
+| `api` | JSON API（endpoint・map指定） |
+| `xml` | 汎用XML（endpoint・xpath・map指定） |
+
+API/XMLは `map` キーで応答のキーを共通フォーマットにマッピングできる：
+
+```php
+'map' => [ 'title' => 'name', 'link' => 'url', 'date' => 'created_at' ],
+```
+
+---
+
 ## Related files
 
 | File | Purpose |

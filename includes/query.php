@@ -576,11 +576,12 @@ function hxse_parse_xml( string $body, string $xpath ) {
 
 /**
  * SimpleXMLElementを再帰的にPHP配列に変換する。
+ * テキストのみの末端ノードは文字列を返す。
  *
  * @param \SimpleXMLElement $xml
- * @return array
+ * @return array|string
  */
-function hxse_simplexml_to_array( \SimpleXMLElement $xml ): array {
+function hxse_simplexml_to_array( \SimpleXMLElement $xml ) {
 	$result = array();
 
 	// 属性
@@ -622,4 +623,193 @@ function hxse_simplexml_to_array( \SimpleXMLElement $xml ): array {
  */
 function hxse_do_api_request( array $schema, string $endpoint ) {
 	return hxse_do_remote_fetch( $schema, $endpoint, 'api' );
+}
+
+/**
+ * マージモード（sources）：複数のデータソースを取得・正規化・マージする。
+ *
+ * @param array $schema sources キーを持つスキーマ
+ * @return array 正規化・ソート済みのアイテム配列
+ */
+function hxse_fetch_merged_data( $schema ) {
+	$sources = isset( $schema['sources'] ) && is_array( $schema['sources'] ) ? $schema['sources'] : array();
+	if ( empty( $sources ) ) {
+		return array();
+	}
+
+	$schema_id = isset( $schema['id'] ) ? $schema['id'] : '';
+	$cache_ttl = isset( $schema['cache'] ) ? absint( $schema['cache'] ) : 600;
+	$cache_key = 'hxse_merged_' . md5( $schema_id . wp_json_encode( $sources ) );
+
+	// transientキャッシュ
+	if ( $cache_ttl > 0 ) {
+		$cached = get_transient( $cache_key );
+		if ( false !== $cached ) {
+			return $cached;
+		}
+	}
+
+	$merged = array();
+
+	foreach ( $sources as $source ) {
+		$type  = isset( $source['type'] ) ? sanitize_key( $source['type'] ) : 'wp_query';
+		$label = isset( $source['label'] ) ? $source['label'] : '';
+
+		if ( 'wp_query' === $type ) {
+			$items = hxse_normalize_wp_query( $source, $label );
+		} elseif ( 'rss' === $type ) {
+			$items = hxse_normalize_rss_source( $source, $label );
+		} elseif ( in_array( $type, array( 'api', 'xml' ), true ) ) {
+			$items = hxse_normalize_api_source( $source, $label, $type );
+		} else {
+			$items = array();
+		}
+
+		$merged = array_merge( $merged, $items );
+	}
+
+	// ソート
+	$orderby = isset( $schema['orderby'] ) ? sanitize_key( $schema['orderby'] ) : 'date';
+	$order   = isset( $schema['order'] ) && 'asc' === strtolower( $schema['order'] ) ? 'asc' : 'desc';
+
+	usort( $merged, function( $a, $b ) use ( $orderby, $order ) {
+		$va = $a[ $orderby ] ?? '';
+		$vb = $b[ $orderby ] ?? '';
+		if ( 'date' === $orderby ) {
+			$va = strtotime( $va ) ?: 0;
+			$vb = strtotime( $vb ) ?: 0;
+		}
+		if ( $va === $vb ) {
+			return 0;
+		}
+		$cmp = ( $va < $vb ) ? -1 : 1;
+		return ( 'asc' === $order ) ? $cmp : -$cmp;
+	} );
+
+	// 件数制限
+	$limit = isset( $schema['limit'] ) ? absint( $schema['limit'] ) : 0;
+	if ( $limit > 0 ) {
+		$merged = array_slice( $merged, 0, $limit );
+	}
+
+	if ( $cache_ttl > 0 ) {
+		set_transient( $cache_key, $merged, $cache_ttl );
+	}
+
+	return $merged;
+}
+
+/**
+ * WP_Queryの結果を共通フォーマットに正規化する。
+ *
+ * @param array  $source sources内の1ソース定義
+ * @param string $label  バッジ表示用ラベル
+ * @return array
+ */
+function hxse_normalize_wp_query( array $source, string $label ): array {
+	$args = array(
+		'post_type'      => isset( $source['post_type'] ) ? $source['post_type'] : 'post',
+		'posts_per_page' => isset( $source['limit'] ) ? absint( $source['limit'] ) : 20,
+		'post_status'    => 'publish',
+		'no_found_rows'  => true,
+	);
+
+	$query = new WP_Query( $args );
+	$items = array();
+
+	foreach ( $query->posts as $post ) {
+		$items[] = array(
+			'title'   => get_the_title( $post ),
+			'link'    => get_permalink( $post ),
+			'date'    => get_post_time( 'Y-m-d H:i:s', false, $post ),
+			'excerpt' => has_excerpt( $post ) ? get_the_excerpt( $post ) : wp_trim_words( wp_strip_all_tags( $post->post_content ), 40 ),
+			'source'  => $label,
+			'raw'     => array( 'post_id' => $post->ID ),
+		);
+	}
+
+	wp_reset_postdata();
+	return $items;
+}
+
+/**
+ * RSSソースを共通フォーマットに正規化する。
+ *
+ * @param array  $source sources内の1ソース定義
+ * @param string $label  バッジ表示用ラベル
+ * @return array
+ */
+function hxse_normalize_rss_source( array $source, string $label ): array {
+	$endpoint = isset( $source['endpoint'] ) ? esc_url_raw( $source['endpoint'] ) : '';
+	if ( ! $endpoint ) {
+		return array();
+	}
+
+	$data = hxse_do_remote_fetch( $source, $endpoint, 'rss' );
+	if ( is_wp_error( $data ) || ! is_array( $data ) ) {
+		return array();
+	}
+
+	$items = array();
+	foreach ( $data as $entry ) {
+		$pub_date = isset( $entry['pubDate'] ) ? $entry['pubDate'] : '';
+		$ts       = $pub_date ? strtotime( $pub_date ) : 0;
+		$items[]  = array(
+			'title'   => isset( $entry['title'] ) ? $entry['title'] : '',
+			'link'    => isset( $entry['link'] ) ? $entry['link'] : '',
+			'date'    => $ts ? gmdate( 'Y-m-d H:i:s', $ts ) : '',
+			'excerpt' => isset( $entry['description'] ) ? wp_trim_words( wp_strip_all_tags( $entry['description'] ), 40 ) : '',
+			'source'  => $label,
+			'raw'     => $entry,
+		);
+	}
+
+	return $items;
+}
+
+/**
+ * API/XMLソースを共通フォーマットに正規化する。
+ * キーのマッピングは source['map'] で指定可能。
+ *
+ * @param array  $source sources内の1ソース定義
+ * @param string $label  バッジ表示用ラベル
+ * @param string $type   'api' | 'xml'
+ * @return array
+ */
+function hxse_normalize_api_source( array $source, string $label, string $type ): array {
+	$endpoint = isset( $source['endpoint'] ) ? esc_url_raw( $source['endpoint'] ) : '';
+	if ( ! $endpoint ) {
+		return array();
+	}
+
+	$data = hxse_do_remote_fetch( $source, $endpoint, $type );
+	if ( is_wp_error( $data ) || ! is_array( $data ) ) {
+		return array();
+	}
+
+	// キーマッピング（title/link/date/excerpt がAPIのどのキーに対応するか）
+	$map = isset( $source['map'] ) && is_array( $source['map'] ) ? $source['map'] : array();
+	$k_title   = $map['title'] ?? 'title';
+	$k_link    = $map['link'] ?? 'link';
+	$k_date    = $map['date'] ?? 'date';
+	$k_excerpt = $map['excerpt'] ?? 'description';
+
+	$items = array();
+	foreach ( $data as $entry ) {
+		if ( ! is_array( $entry ) ) {
+			continue;
+		}
+		$date_raw = $entry[ $k_date ] ?? '';
+		$ts       = $date_raw ? strtotime( $date_raw ) : 0;
+		$items[]  = array(
+			'title'   => $entry[ $k_title ] ?? '',
+			'link'    => $entry[ $k_link ] ?? '',
+			'date'    => $ts ? gmdate( 'Y-m-d H:i:s', $ts ) : '',
+			'excerpt' => isset( $entry[ $k_excerpt ] ) ? wp_trim_words( wp_strip_all_tags( $entry[ $k_excerpt ] ), 40 ) : '',
+			'source'  => $label,
+			'raw'     => $entry,
+		);
+	}
+
+	return $items;
 }

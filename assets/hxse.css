@@ -828,3 +828,50 @@
 	color: #fff;
 	box-shadow: 0 1px 3px rgba(37,99,235,.3);
 }
+
+/* === マージモード === */
+.hxse-merged-list {
+	list-style: none;
+	margin: 0;
+	padding: 0;
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+}
+.hxse-merged-item {
+	border-bottom: 1px solid var(--hxse-color-border, #e2e8f0);
+}
+.hxse-merged-link {
+	display: block;
+	padding: 14px 4px;
+	text-decoration: none;
+	color: inherit;
+	transition: background .15s;
+}
+.hxse-merged-link:hover {
+	background: var(--hxse-color-bg-hover, #f8fafc);
+}
+.hxse-merged-meta {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	margin-bottom: 4px;
+}
+.hxse-merged-date {
+	font-size: var(--hxse-font-size-sm, 0.8125rem);
+	color: var(--hxse-color-text-muted, #64748b);
+}
+.hxse-merged-badge {
+	font-size: 0.6875rem;
+	padding: 2px 8px;
+	border-radius: 999px;
+	background: var(--hxse-color-primary, #0ea5e9);
+	color: #fff;
+	white-space: nowrap;
+}
+.hxse-merged-title {
+	display: block;
+	font-size: var(--hxse-font-size-base, 0.9375rem);
+	font-weight: 600;
+	color: var(--hxse-color-text, #0f172a);
+}

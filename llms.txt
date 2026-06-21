@@ -2,7 +2,7 @@
 
 > Code-first search & filter for WordPress. Define filters with PHP arrays, output with a shortcode. Powered by htmx — no page reloads.
 
-Current version: 1.4.0
+Current version: 1.5.0
 WordPress.org: https://wordpress.org/plugins/hxse-code-first-search/
 GitHub: https://github.com/okuboyouhei/hxse-code-first-search
 Author: Youhei Okubo (https://zenn.dev/youheiokubo)
@@ -32,6 +32,13 @@ Author: Youhei Okubo (https://zenn.dev/youheiokubo)
 - AI-friendly: simple consistent schema structure
 
 ## Version history (latest first)
+
+### v1.5.0
+- Added: マージモード（sourcesキー）— WordPress投稿・RSS・APIを1つの時系列リストに統合
+- Added: ソース正規化（wp_query/rss/api/xmlを共通フォーマットに変換）
+- Added: orderby/order/limit でマージ後のソート・件数制限
+- Added: mapキーでAPI/XMLのキーマッピング
+- Added: templates/merged.php（ソースバッジ付きデフォルトテンプレート）
 
 ### v1.4.0
 - Added: `source: 'rss'` — RSS 2.0・AtomフィードをPHP配列に自動変換

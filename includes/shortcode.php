@@ -52,6 +52,44 @@ function hxse_shortcode( $atts ) {
 		}
 	}
 
+	$source = isset( $schema['source'] ) ? sanitize_key( $schema['source'] ) : 'wp_query';
+
+	// --- マージモード（複数ソース） ---
+	if ( ! empty( $schema['sources'] ) && is_array( $schema['sources'] ) ) {
+		ob_start();
+		echo '<div class="hxse-wrap" id="hxse-wrap-' . esc_attr( $hxse_id ) . '"'
+			. ' data-hxse-id="' . esc_attr( $hxse_id ) . '"'
+			. ' data-prefix="' . esc_attr( $prefix ) . '">';
+
+		echo '<div id="hxse-results-' . esc_attr( $hxse_id ) . '" class="hxse-results-wrap">';
+		$merged_data = hxse_fetch_merged_data( $schema );
+		hxse_render_merged_results( $schema, $hxse_id, $merged_data );
+		echo '</div>';
+
+		echo '</div>';
+		return ob_get_clean();
+	}
+
+	// --- API/RSS/XMLモード ---
+	if ( in_array( $source, array( 'api', 'rss', 'xml' ), true ) ) {
+		ob_start();
+		$columns = isset( $schema['columns'] ) ? absint( $schema['columns'] ) : 0;
+		$style   = $columns ? ' style="--hxse-columns:' . $columns . '"' : '';
+
+		echo '<div class="hxse-wrap" id="hxse-wrap-' . esc_attr( $hxse_id ) . '"'
+			. $style // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- controlled inline style with absint value
+			. ' data-hxse-id="' . esc_attr( $hxse_id ) . '"'
+			. ' data-prefix="' . esc_attr( $prefix ) . '">';
+
+		echo '<div id="hxse-results-' . esc_attr( $hxse_id ) . '" class="hxse-results-wrap">';
+		$api_data = hxse_fetch_api_data( $schema );
+		hxse_render_api_results( $schema, $hxse_id, $api_data );
+		echo '</div>';
+
+		echo '</div>';
+		return ob_get_clean();
+	}
+
 	$query_args = hxse_build_query_args( $schema, $current_params, $page );
 	$query      = new WP_Query( $query_args );
 

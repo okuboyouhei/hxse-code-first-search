@@ -4,7 +4,7 @@ Tags: search, filter, ajax, shortcode, custom post type
 Requires at least: 6.0
 Tested up to: 7.0
 Requires PHP: 7.4
-Stable tag: 1.4.0
+Stable tag: 1.5.0
 License: GPL-2.0-or-later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -95,6 +95,15 @@ Create `hxse/your-template.php` in your theme directory and specify it in the sc
 Yes. Use `type: 'meta'` with the appropriate `meta_key`.
 
 == Changelog ==
+
+= 1.5.0 =
+* Added: Merge mode (`sources` key) — combine WordPress posts, RSS feeds, and APIs into a single chronological list
+* Added: `hxse_fetch_merged_data()` — fetches, normalizes, and merges multiple data sources
+* Added: Source normalizers for wp_query / rss / api / xml into a common format (title, link, date, excerpt, source, raw)
+* Added: `orderby` / `order` / `limit` keys for merge mode sorting
+* Added: `map` key — maps API/XML response keys to the common format
+* Added: `templates/merged.php` — default template with source badges
+* Added: Merge list styles in hxse.css
 
 = 1.4.0 =
 * Added: `source: 'rss'` mode — fetches RSS 2.0 and Atom feeds and converts to PHP array automatically
