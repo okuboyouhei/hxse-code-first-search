@@ -480,6 +480,53 @@ API/XMLは `map` キーで応答のキーを共通フォーマットにマッピ
 
 ---
 
+## iframe埋め込み（embed, v1.6.0+）
+
+WordPress外のLP・別ドメインのサイトに、新着記事の一覧をiframeで埋め込める。フィルターUIなしの一覧のみを自己完結HTMLで出力する。
+
+```php
+$schemas['lp_news'] = [
+    'post_type'  => 'post',
+    'conditions' => [   // 固定の絞り込み（埋め込みに出す内容を開発者が決める）
+        [ 'type' => 'taxonomy', 'taxonomy' => 'category', 'terms' => ['news'] ],
+    ],
+    'embed' => [
+        'enabled'         => true,
+        'allowed_origins' => [          // 埋め込みを許可するドメイン
+            'https://lp.example.com',
+            'https://campaign.example.net',
+        ],
+        'title'           => '新着情報',  // 埋め込みページの見出し（省略可）
+        'per_page'        => 5,          // 表示件数
+    ],
+];
+```
+
+| embedキー | 型 | 説明 |
+|---|---|---|
+| `enabled` | bool | 埋め込みを有効化 |
+| `allowed_origins` | array | 埋め込みを許可するオリジン（空=同一オリジンのみ） |
+| `title` | string | 埋め込みページの見出し（省略可） |
+| `per_page` | int | 表示件数（0=スキーマのpagination設定に従う） |
+
+**埋め込みURL：** `https://your-wp-site.com/?hxse_embed=lp_news`
+
+**LP側のHTML：**
+```html
+<iframe src="https://your-wp-site.com/?hxse_embed=lp_news"
+        width="100%" height="600" frameborder="0"></iframe>
+```
+
+**セキュリティ：**
+- `allowed_origins` に指定したドメインのみ `Content-Security-Policy: frame-ancestors` で埋め込みを許可
+- 未指定の場合は同一オリジンのみ（`X-Frame-Options: SAMEORIGIN`）
+- 埋め込みページは `noindex`（検索エンジンにインデックスされない）
+- マージモード・外部ソース（api/rss/xml）の一覧も埋め込み可能
+
+**注意（v1.6.0時点）：** 埋め込みビューはフィルターUIなしの一覧のみ。訪問者が操作する絞り込みUIや、iframe高さの自動調整は今後のバージョンで対応予定。
+
+---
+
 ## Related files
 
 | File | Purpose |

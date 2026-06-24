@@ -45,9 +45,21 @@ function hxse_normalize_schema( $schema ) {
 		'url_params'       => array(),
 		'template'         => '',
 		'wrapper'          => array(),
+		'embed'            => array(),   // iframe埋め込み設定
 	);
 
 	$schema = wp_parse_args( $schema, $defaults );
+
+	// embedのデフォルト（enabledが指定された場合のみ正規化）
+	if ( ! empty( $schema['embed'] ) && ! empty( $schema['embed']['enabled'] ) ) {
+		$embed_defaults = array(
+			'enabled'         => false,
+			'allowed_origins' => array(),  // 埋め込みを許可するドメイン（空=同一オリジンのみ）
+			'title'           => '',       // 埋め込みページの見出し（省略可）
+			'per_page'        => 0,        // 埋め込み時の表示件数（0=スキーマのpagination設定に従う）
+		);
+		$schema['embed'] = wp_parse_args( $schema['embed'], $embed_defaults );
+	}
 
 	// paginationのデフォルト
 	$pagination_defaults = array(

@@ -4,7 +4,7 @@ Tags: search, filter, ajax, shortcode, custom post type
 Requires at least: 6.0
 Tested up to: 7.0
 Requires PHP: 7.4
-Stable tag: 1.5.0
+Stable tag: 1.6.0
 License: GPL-2.0-or-later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -95,6 +95,12 @@ Create `hxse/your-template.php` in your theme directory and specify it in the sc
 Yes. Use `type: 'meta'` with the appropriate `meta_key`.
 
 == Changelog ==
+
+= 1.6.0 =
+* Added: iframe embed view — access `?hxse_embed={schema_id}` to output a list-only, self-contained HTML page for embedding on external landing pages
+* Added: `embed` schema key — `enabled`, `allowed_origins`, `title`, `per_page`
+* Added: Clickjacking protection — `Content-Security-Policy: frame-ancestors` restricts which domains may embed the view (same-origin only when no origins are specified)
+* Added: `includes/embed.php` — embed view rendering and frame security headers
 
 = 1.5.0 =
 * Added: Merge mode (`sources` key) — combine WordPress posts, RSS feeds, and APIs into a single chronological list
