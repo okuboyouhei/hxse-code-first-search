@@ -508,6 +508,7 @@ $schemas['lp_news'] = [
 | `allowed_origins` | array | 埋め込みを許可するオリジン（空=同一オリジンのみ） |
 | `title` | string | 埋め込みページの見出し（省略可） |
 | `per_page` | int | 表示件数（0=スキーマのpagination設定に従う） |
+| `show_filters` | bool | 埋め込み内にフィルターUIを表示（v1.7.0+、WordPressソースのみ） |
 
 **埋め込みURL：** `https://your-wp-site.com/?hxse_embed=lp_news`
 
@@ -523,7 +524,9 @@ $schemas['lp_news'] = [
 - 埋め込みページは `noindex`（検索エンジンにインデックスされない）
 - マージモード・外部ソース（api/rss/xml）の一覧も埋め込み可能
 
-**注意（v1.6.0時点）：** 埋め込みビューはフィルターUIなしの一覧のみ。訪問者が操作する絞り込みUIや、iframe高さの自動調整は今後のバージョンで対応予定。
+**フィルターUI（v1.7.0+）：** `embed.show_filters = true` で埋め込み内に絞り込みUIを表示できる（WordPress投稿ソースのみ。外部API/RSS/XMLは非対応）。htmxとhxse.jsが埋め込みページにインライン展開される。
+
+**iframe高さ自動調整（v1.7.0+）：** 埋め込みページが高さを親に `postMessage` で通知（load/resize/htmx:afterSwap時）。送信先originは `allowed_origins` に限定（未指定なら同一オリジンのみ）。別ドメインで高さ調整を使うには `allowed_origins` の指定が必須。親ページ側に受信スニペット（`message`イベントで`e.data.hxseEmbedHeight`を受けてiframeの高さを更新、`e.origin`検証必須）を貼る必要がある。
 
 ---
 

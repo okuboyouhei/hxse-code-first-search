@@ -2,7 +2,7 @@
 
 > Code-first search & filter for WordPress. Define filters with PHP arrays, output with a shortcode. Powered by htmx — no page reloads.
 
-Current version: 1.6.0
+Current version: 1.7.0
 WordPress.org: https://wordpress.org/plugins/hxse-code-first-search/
 GitHub: https://github.com/okuboyouhei/hxse-code-first-search
 Author: Youhei Okubo (https://zenn.dev/youheiokubo)
@@ -32,6 +32,12 @@ Author: Youhei Okubo (https://zenn.dev/youheiokubo)
 - AI-friendly: simple consistent schema structure
 
 ## Version history (latest first)
+
+### v1.7.0
+- Added: 埋め込みビュー内のフィルターUI（embed.show_filters、WordPressソースのみ）
+- Added: iframe高さの自動通知（postMessageで親に通知。load/resize/htmx絞り込み後）
+- Added: postMessage送信先originをallowed_originsに限定（ワイルドカード不使用）
+- Note: 親ページ側にiframe自動リサイズ用の受信スニペットを貼る必要あり（マニュアル参照）
 
 ### v1.6.0
 - Added: iframe埋め込みビュー（?hxse_embed={schema_id} で一覧のみの自己完結HTMLを出力）

@@ -102,8 +102,9 @@ function hxse_send_embed_frame_headers( array $embed ) {
  * @param string $schema_id スキーマID
  */
 function hxse_render_embed_page( array $schema, string $schema_id ) {
-	$embed     = $schema['embed'];
-	$embed_ttl = isset( $embed['title'] ) ? $embed['title'] : '';
+	$embed        = $schema['embed'];
+	$embed_ttl    = isset( $embed['title'] ) ? $embed['title'] : '';
+	$show_filters = ! empty( $embed['show_filters'] );
 
 	// 表示件数：embed.per_page があれば優先
 	$page = 1;
@@ -111,6 +112,15 @@ function hxse_render_embed_page( array $schema, string $schema_id ) {
 		$schema['pagination']             = isset( $schema['pagination'] ) ? $schema['pagination'] : array();
 		$schema['pagination']['per_page'] = absint( $embed['per_page'] );
 		$schema['pagination']['mode']     = 'none'; // 埋め込みはページャーなし
+	}
+
+	$is_external = ! empty( $schema['sources'] )
+		|| in_array( ( isset( $schema['source'] ) ? $schema['source'] : '' ), array( 'api', 'rss', 'xml' ), true );
+
+	// 現在のフィルター値（フィルターUI使用時、htmxからのGETで渡る）
+	$current_params = array();
+	if ( $show_filters && ! $is_external && function_exists( 'hxse_sanitize_get_params' ) ) {
+		$current_params = hxse_sanitize_get_params();
 	}
 
 	header( 'Content-Type: text/html; charset=utf-8' );
@@ -123,19 +133,47 @@ function hxse_render_embed_page( array $schema, string $schema_id ) {
 		$css_inline = (string) file_get_contents( $css_path );
 	}
 
+	// htmx本体とhxse.js（フィルター使用時のみインライン）
+	$htmx_inline = '';
+	$hxse_js     = '';
+	if ( $show_filters && ! $is_external ) {
+		$htmx_path = HXSE_PLUGIN_DIR . 'assets/htmx.min.js';
+		if ( file_exists( $htmx_path ) ) {
+			// phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents
+			$htmx_inline = (string) file_get_contents( $htmx_path );
+		}
+		$hxse_js_path = HXSE_PLUGIN_DIR . 'assets/hxse.js';
+		if ( file_exists( $hxse_js_path ) ) {
+			// phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents
+			$hxse_js = (string) file_get_contents( $hxse_js_path );
+		}
+	}
+
 	echo '<!DOCTYPE html>' . "\n";
 	echo '<html lang="' . esc_attr( get_bloginfo( 'language' ) ) . '">' . "\n";
 	echo '<head>' . "\n";
 	echo '<meta charset="' . esc_attr( get_bloginfo( 'charset' ) ) . '">' . "\n";
 	echo '<meta name="viewport" content="width=device-width, initial-scale=1">' . "\n";
-	echo '<meta name="robots" content="noindex">' . "\n"; // 埋め込みページは検索避け
+	echo '<meta name="robots" content="noindex">' . "\n";
 	echo '<title>' . esc_html( $embed_ttl ? $embed_ttl : get_bloginfo( 'name' ) ) . '</title>' . "\n";
 	echo '<style>' . "\n";
 	echo 'body{margin:0;padding:12px;background:transparent;font-family:system-ui,sans-serif;}' . "\n";
-	// プラグイン同梱CSSをインライン展開（自前の<head>のためwp_enqueue_styleは使えない）。
-	// 自己管理の静的CSSファイルだが、念のため </style> の混入だけ無害化する。
-	echo str_replace( '</style', '<\\/style', $css_inline ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- bundled static CSS, only closing-tag injection neutralized
+	// 同梱CSSをインライン展開（自前の<head>のためenqueue不可）。</style 混入のみ無害化。
+	echo str_replace( '</style', '<\/style', $css_inline ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- bundled static CSS, closing-tag injection neutralized
 	echo "\n" . '</style>' . "\n";
+
+	if ( $htmx_inline ) {
+		echo '<script>' . "\n";
+		echo str_replace( '</script', '<\/script', $htmx_inline ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- bundled static JS, closing-tag injection neutralized
+		echo "\n" . '</script>' . "\n";
+	}
+
+	if ( $hxse_js ) {
+		echo '<script>' . "\n";
+		echo str_replace( '</script', '<\/script', $hxse_js ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- bundled static JS, closing-tag injection neutralized
+		echo "\n" . '</script>' . "\n";
+	}
+
 	echo '</head>' . "\n";
 	echo '<body class="hxse-embed-body">' . "\n";
 
@@ -143,19 +181,25 @@ function hxse_render_embed_page( array $schema, string $schema_id ) {
 		echo '<h2 class="hxse-embed-title">' . esc_html( $embed_ttl ) . '</h2>' . "\n";
 	}
 
-	// 一覧だけを描画（フィルターUIなし）
 	echo '<div class="hxse-wrap hxse-embed" id="hxse-wrap-' . esc_attr( $schema_id ) . '">';
+
+	// フィルターUI（show_filters時・WordPressソースのみ）
+	if ( $show_filters && ! $is_external && ! empty( $schema['filters'] ) ) {
+		// エンドポイントはデフォルト（REST API hxse/v1/search）を使う。
+		// 結果エリアだけが差し替わり、高さ通知スクリプトのhtmx:afterSwapが発火する。
+		hxse_render_filters( $schema, $schema_id, $current_params );
+	}
+
 	echo '<div id="hxse-results-' . esc_attr( $schema_id ) . '" class="hxse-results-wrap">';
 
-	// マージモード/外部ソース/通常を分岐して一覧を取得
 	if ( ! empty( $schema['sources'] ) && is_array( $schema['sources'] ) ) {
 		$merged = hxse_fetch_merged_data( $schema );
 		hxse_render_merged_results( $schema, $schema_id, $merged );
-	} elseif ( in_array( ( isset( $schema['source'] ) ? $schema['source'] : '' ), array( 'api', 'rss', 'xml' ), true ) ) {
+	} elseif ( $is_external ) {
 		$api_data = hxse_fetch_api_data( $schema );
 		hxse_render_api_results( $schema, $schema_id, $api_data );
 	} else {
-		$query_args = hxse_build_query_args( $schema, array(), $page );
+		$query_args = hxse_build_query_args( $schema, $current_params, $page );
 		$query      = new WP_Query( $query_args );
 		hxse_render_results( $schema, $schema_id, $query, $page );
 		wp_reset_postdata();
@@ -164,6 +208,46 @@ function hxse_render_embed_page( array $schema, string $schema_id ) {
 	echo '</div>';
 	echo '</div>';
 
+	// iframe高さ自動通知スクリプト（常に出力。親が使うかは任意）
+	hxse_render_embed_height_script( $embed );
+
 	echo '</body>' . "\n";
 	echo '</html>';
+}
+
+/**
+ * iframe高さを親ウィンドウに通知するスクリプトを出力する。
+ * 初回ロード・リサイズ・htmxによる結果差し替え後・DOM変化時に高さを送る。
+ * 送信先originは allowed_origins に限定（未指定なら自オリジン）。
+ *
+ * @param array $embed 正規化済みのembed設定
+ */
+function hxse_render_embed_height_script( array $embed ) {
+	$origins = isset( $embed['allowed_origins'] ) ? (array) $embed['allowed_origins'] : array();
+	$targets = array();
+	foreach ( $origins as $origin ) {
+		$parts = wp_parse_url( esc_url_raw( trim( $origin ) ) );
+		if ( ! empty( $parts['scheme'] ) && ! empty( $parts['host'] ) ) {
+			$clean = $parts['scheme'] . '://' . $parts['host'];
+			if ( ! empty( $parts['port'] ) ) {
+				$clean .= ':' . $parts['port'];
+			}
+			$targets[] = $clean;
+		}
+	}
+	if ( empty( $targets ) ) {
+		$targets[] = home_url();
+	}
+	$targets_json = wp_json_encode( array_values( array_unique( $targets ) ) );
+
+	echo '<script>' . "\n";
+	echo '(function(){' . "\n";
+	echo 'var targets=' . $targets_json . ';' . "\n"; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- wp_json_encode output, safe in JS context
+	echo 'function sendHeight(){var h=document.documentElement.scrollHeight;for(var i=0;i<targets.length;i++){try{window.parent.postMessage({hxseEmbedHeight:h},targets[i]);}catch(e){}}}' . "\n";
+	echo 'window.addEventListener("load",sendHeight);' . "\n";
+	echo 'window.addEventListener("resize",sendHeight);' . "\n";
+	echo 'document.body.addEventListener("htmx:afterSwap",function(){setTimeout(sendHeight,50);});' . "\n";
+	echo 'if(window.MutationObserver){var mo=new MutationObserver(function(){sendHeight();});mo.observe(document.body,{childList:true,subtree:true});}' . "\n";
+	echo '})();' . "\n";
+	echo '</script>' . "\n";
 }

@@ -4,7 +4,7 @@ Tags: search, filter, ajax, shortcode, custom post type
 Requires at least: 6.0
 Tested up to: 7.0
 Requires PHP: 7.4
-Stable tag: 1.6.0
+Stable tag: 1.7.0
 License: GPL-2.0-or-later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -95,6 +95,13 @@ Create `hxse/your-template.php` in your theme directory and specify it in the sc
 Yes. Use `type: 'meta'` with the appropriate `meta_key`.
 
 == Changelog ==
+
+= 1.7.0 =
+* Added: Filter UI inside the iframe embed view — set `embed.show_filters` to let visitors filter within the embed (WordPress sources only)
+* Added: Automatic iframe height notification via postMessage — the embed reports its height to the parent on load, resize, and after htmx filtering
+* Added: postMessage target origins limited to `allowed_origins` (no wildcard) for security
+* Added: htmx and hxse.js are inlined into the embed page when filters are enabled
+* Note: Parent pages must add a small receiver snippet to auto-resize the iframe (see manual)
 
 = 1.6.0 =
 * Added: iframe embed view — access `?hxse_embed={schema_id}` to output a list-only, self-contained HTML page for embedding on external landing pages

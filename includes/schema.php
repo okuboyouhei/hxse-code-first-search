@@ -57,6 +57,7 @@ function hxse_normalize_schema( $schema ) {
 			'allowed_origins' => array(),  // 埋め込みを許可するドメイン（空=同一オリジンのみ）
 			'title'           => '',       // 埋め込みページの見出し（省略可）
 			'per_page'        => 0,        // 埋め込み時の表示件数（0=スキーマのpagination設定に従う）
+			'show_filters'    => false,    // 埋め込み内にフィルターUIを表示するか（v1.7.0+）
 		);
 		$schema['embed'] = wp_parse_args( $schema['embed'], $embed_defaults );
 	}
