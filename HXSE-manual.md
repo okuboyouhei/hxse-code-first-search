@@ -489,6 +489,55 @@ $schemas['custom_xml'] = [
 
 ---
 
+## 外部ソースを検索・絞り込みする（v1.8.0+）
+
+`source: 'api' / 'rss' / 'xml'` のスキーマに `filters`・`sort`・`pagination` を書くと、取得したデータに対して検索・絞り込み・並び替え・ページ送りのUIが使えます。WordPress投稿の検索と同じ操作感で、外部データを扱えます。
+
+```php
+add_filter( 'hxse_schemas', function( $schemas ) {
+    $schemas['connpass_nagoya'] = [
+        'source'     => 'api',
+        'endpoint'   => 'https://connpass.com/api/v1/event/?prefecture=aichi&count=100',
+        'items_key'  => 'events',        // JSONの中のリストの場所（ドット記法対応）
+        'cache_mode' => 'static',
+        'cache'      => 3600,
+        'filters'    => [
+            [ 'key' => 'keyword', 'type' => 'search', 'label' => 'キーワード',
+              'search_fields' => [ 'title', 'catch' ] ],
+            [ 'key' => 'area', 'type' => 'select', 'label' => 'エリア',
+              'field' => 'address', 'options' => 'auto' ],
+        ],
+        'sort' => [
+            [ 'key' => 'date_asc',  'label' => '開催日順', 'field' => 'started_at', 'order' => 'asc',  'compare' => 'date' ],
+            [ 'key' => 'date_desc', 'label' => '新しい順', 'field' => 'started_at', 'order' => 'desc', 'compare' => 'date' ],
+        ],
+        'pagination' => [ 'per_page' => 10, 'show_count' => true, 'show_pages' => true ],
+    ];
+    return $schemas;
+} );
+```
+
+### 使えるフィルタータイプ
+
+| type | 説明 |
+| --- | --- |
+| `search` | `search_fields` で指定したフィールドを横断してキーワード部分一致。省略時はアイテム直下の全文字列フィールドが対象 |
+| `select` | `field` の値と完全一致で絞り込み。`ui: 'radio'` も可 |
+
+`select` の選択肢は `'options' => 'auto'` にすると、取得したデータのユニーク値から自動生成されます。手動で指定する場合は `[ [ 'value' => 'a', 'label' => 'A' ], ... ]` の形式です。
+
+### ソート
+
+`field`（対象フィールド、ドット記法対応）・`order`（`asc` / `desc`）・`compare`（`string` / `numeric` / `date`）で並び替えを定義します。sortパラメータ未指定時は先頭の定義が使われます。
+
+### 覚えておくこと
+
+- **絞り込みでAPIは叩かれません。** フィルタ・ソート・ページネーションはすべてキャッシュ済みデータへのメモリ内処理です。相手サーバーへの負荷は増えません。
+- **大量データはAPI側で先に絞ってください。** HXSEの絞り込みは取得済みデータへの後処理なので、endpointのクエリパラメータ（connpassの `count` や `prefecture` など）で総量を抑えるのが基本です。
+- **ページネーションは `pager` モードのみ。** 外部ソースでは `loadmore`（もっと見るボタン）は使えません。
+- **後方互換。** `filters` / `sort` / `pagination` を書かないスキーマは、これまでどおり全件がテンプレートに渡されます。
+- **デフォルトテンプレート。** `template` 指定がなくテーマにもテンプレートがない場合、同梱の `templates/api.php` がリスト表示します（title / link / description / pubDate があるデータはそのまま綺麗に出ます）。
+
 ## 複数ソースを統合する：マージモード（v1.5.0+）
 
 `sources` キーを使うと、WordPress投稿・RSS・APIなど複数のデータソースを1つの時系列リストに統合できます。自社サイトのお知らせ（WordPress）とZennの技術記事（RSS）を混ぜてトップページに表示する、といった使い方ができます。

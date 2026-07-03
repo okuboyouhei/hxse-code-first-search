@@ -81,10 +81,29 @@ function hxse_shortcode( $atts ) {
 			. ' data-hxse-id="' . esc_attr( $hxse_id ) . '"'
 			. ' data-prefix="' . esc_attr( $prefix ) . '">';
 
-		echo '<div id="hxse-results-' . esc_attr( $hxse_id ) . '" class="hxse-results-wrap">';
 		$api_data = hxse_fetch_api_data( $schema );
-		hxse_render_api_results( $schema, $hxse_id, $api_data );
-		echo '</div>';
+
+		if ( hxse_api_is_interactive( $schema ) && ! is_wp_error( $api_data ) ) {
+			// v1.8.0+: フィルタUI付き対話モード
+			$items = hxse_api_extract_items( $api_data, $schema );
+
+			// 'options' => 'auto' の選択肢生成用に全アイテムを渡す（絞り込み前）
+			$schema['_api_items'] = $items;
+
+			$endpoint = rest_url( 'hxse/v1/search' );
+			hxse_render_filters( $schema, $hxse_id, $current_params, $endpoint );
+
+			$items = hxse_filter_api_items( $items, $schema, $current_params );
+			$items = hxse_sort_api_items( $items, $schema, $current_params );
+
+			echo '<div id="hxse-results-' . esc_attr( $hxse_id ) . '" class="hxse-results-wrap">';
+			hxse_render_api_page( $schema, $hxse_id, $items, $page );
+			echo '</div>';
+		} else {
+			echo '<div id="hxse-results-' . esc_attr( $hxse_id ) . '" class="hxse-results-wrap">';
+			hxse_render_api_results( $schema, $hxse_id, $api_data );
+			echo '</div>';
+		}
 
 		echo '</div>';
 		return ob_get_clean();

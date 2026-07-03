@@ -89,6 +89,10 @@ function hxse_render_filters( $schema, $hxse_id, $current_params = array(), $end
 			case 'search':
 				hxse_render_search_filter( $input_name, $current_val );
 				break;
+			case 'select':
+				// 外部ソース（api/rss/xml）用: データフィールドの値で絞り込み（v1.8.0+）
+				hxse_render_api_select_filter( $filter, $input_name, $current_val, $ui, $schema );
+				break;
 			case 'taxonomy':
 				hxse_render_taxonomy_filter( $filter, $input_name, $current_val, $ui );
 				break;

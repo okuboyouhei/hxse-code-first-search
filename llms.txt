@@ -16,7 +16,7 @@ Author: Youhei Okubo (https://zenn.dev/youheiokubo)
 
 - Shortcode: `[hxse id="schema_key"]`
 - Filter: `hxse_schemas`
-- Filter types: search, taxonomy, meta, date, relation
+- Filter types: search, taxonomy, meta, date, relation, select (external sources, v1.8.0+)
 - UI types: select, radio, checkbox, range
 - Display modes: grid (default), list, table, custom
 - Grid columns: controlled via `columns` key (default: 3)
@@ -32,6 +32,16 @@ Author: Youhei Okubo (https://zenn.dev/youheiokubo)
 - AI-friendly: simple consistent schema structure
 
 ## Version history (latest first)
+
+### v1.8.0
+- Added: Filter UI for external sources (api / rss / xml) — `search` and `select` filter types work on fetched data (opt-in via `filters` / `sort` / `pagination` in schema)
+- Added: `select` filter type — exact match on any item field, `'options' => 'auto'` generates choices from data
+- Added: `sort` for external sources — `field` / `order` / `compare` ('string' | 'numeric' | 'date')
+- Added: Pagination for external sources — in-memory slicing of cached data
+- Added: `items_key` — extract item list from wrapped JSON payloads (dot notation)
+- Added: Bundled default template `templates/api.php` — replaces raw JSON debug output for schemas without a custom template
+- Note: All external-source filtering runs in memory against cached data; no remote re-fetches on filter interaction
+- Note: Fully backward compatible — schemas without filters/sort/pagination behave as before
 
 ### v1.7.0
 - Added: 埋め込みビュー内のフィルターUI（embed.show_filters、WordPressソースのみ）

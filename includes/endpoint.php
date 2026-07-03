@@ -62,7 +62,16 @@ function hxse_rest_handler( WP_REST_Request $request ) {
 	ob_start();
 	if ( in_array( $source, array( 'api', 'rss', 'xml' ), true ) ) {
 		$api_data = hxse_fetch_api_data( $schema );
-		hxse_render_api_results( $schema, $hxse_id, $api_data );
+
+		if ( hxse_api_is_interactive( $schema ) && ! is_wp_error( $api_data ) ) {
+			// v1.8.0+: フィルタ・ソート・ページネーション（キャッシュ済みデータへのメモリ内処理）
+			$items = hxse_api_extract_items( $api_data, $schema );
+			$items = hxse_filter_api_items( $items, $schema, $params );
+			$items = hxse_sort_api_items( $items, $schema, $params );
+			hxse_render_api_page( $schema, $hxse_id, $items, $page );
+		} else {
+			hxse_render_api_results( $schema, $hxse_id, $api_data );
+		}
 	} else {
 		$query_args = hxse_build_query_args( $schema, $params, $page );
 		$query      = new WP_Query( $query_args );
@@ -299,6 +308,14 @@ function hxse_render_api_results( $schema, $hxse_id, $api_data ) {
 	$theme_path = get_stylesheet_directory() . '/hxse/' . $template_name . '.php';
 	if ( file_exists( $theme_path ) ) {
 		$located = $theme_path;
+	}
+
+	// プラグイン同梱のデフォルトテンプレート（v1.8.0+）
+	if ( ! $located ) {
+		$plugin_path = HXSE_PLUGIN_DIR . 'templates/' . $template_name . '.php';
+		if ( file_exists( $plugin_path ) ) {
+			$located = $plugin_path;
+		}
 	}
 
 	if ( ! $located ) {

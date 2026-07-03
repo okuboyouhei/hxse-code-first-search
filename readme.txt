@@ -4,7 +4,7 @@ Tags: search, filter, ajax, shortcode, custom post type
 Requires at least: 6.0
 Tested up to: 7.0
 Requires PHP: 7.4
-Stable tag: 1.7.0
+Stable tag: 1.8.0
 License: GPL-2.0-or-later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -29,6 +29,7 @@ HXSE — Code-First Search lets you define search filters with PHP arrays and ou
 * `meta` — Filter by custom field value or range
 * `date` — Filter by year
 * `relation` — Filter by related post
+* `select` — Filter external-source data by field value (api / rss / xml, v1.8.0+)
 
 **UI Types**
 
@@ -95,6 +96,16 @@ Create `hxse/your-template.php` in your theme directory and specify it in the sc
 Yes. Use `type: 'meta'` with the appropriate `meta_key`.
 
 == Changelog ==
+
+= 1.8.0 =
+* Added: Filter UI for external sources (`api` / `rss` / `xml`) — `search` and `select` filter types now work on fetched data (opt-in: enabled when `filters`, `sort`, or `pagination` is present in the schema)
+* Added: `select` filter type — exact-match filtering on any item field, with `'options' => 'auto'` to generate choices from the data automatically
+* Added: `sort` support for external sources — sort definitions accept `field`, `order`, and `compare` ('string' / 'numeric' / 'date')
+* Added: Pagination for external sources — `per_page`, `show_count`, and `show_pages` work on fetched data via in-memory slicing (pager mode only; loadmore is not supported for external sources)
+* Added: `items_key` schema key — extract the item list from wrapped JSON payloads (dot notation supported, e.g. connpass's `events`)
+* Added: Bundled default template `templates/api.php` — external-source schemas without a custom template now render a clean list instead of raw JSON debug output
+* Note: All filtering, sorting, and pagination run in memory against cached data. Filter interactions never trigger remote re-fetches.
+* Note: Fully backward compatible — schemas without `filters` / `sort` / `pagination` behave exactly as before, and custom templates keep receiving data unchanged.
 
 = 1.7.0 =
 * Added: Filter UI inside the iframe embed view — set `embed.show_filters` to let visitors filter within the embed (WordPress sources only)

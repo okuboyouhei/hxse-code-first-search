@@ -130,6 +130,37 @@ Attributes become `@key`, child elements keep their tag names.
 
 ---
 
+## Filtering External Sources (v1.8.0+)
+
+External-source schemas (`api` / `rss` / `xml`) now support the same filter, sort, and pagination UI as WordPress queries. Everything runs in memory against cached data — filter interactions never re-fetch the remote endpoint.
+
+```php
+$schemas['connpass_nagoya'] = [
+    'source'     => 'api',
+    'endpoint'   => 'https://connpass.com/api/v1/event/?prefecture=aichi&count=100',
+    'items_key'  => 'events',        // extract the list from wrapped JSON (dot notation OK)
+    'cache_mode' => 'static',
+    'cache'      => 3600,
+    'filters'    => [
+        [ 'key' => 'keyword', 'type' => 'search', 'label' => 'Keyword',
+          'search_fields' => [ 'title', 'catch' ] ],
+        [ 'key' => 'area', 'type' => 'select', 'label' => 'Area',
+          'field' => 'address', 'options' => 'auto' ],   // choices auto-generated from data
+    ],
+    'sort' => [
+        [ 'key' => 'date_asc',  'label' => 'By date',   'field' => 'started_at', 'order' => 'asc',  'compare' => 'date' ],
+        [ 'key' => 'date_desc', 'label' => 'Newest',    'field' => 'started_at', 'order' => 'desc', 'compare' => 'date' ],
+    ],
+    'pagination' => [ 'per_page' => 10, 'show_count' => true, 'show_pages' => true ],
+];
+```
+
+- `search` matches across `search_fields` (or every top-level string field when omitted)
+- `select` filters by exact match on any item field; `'options' => 'auto'` builds the choices from unique values in the data
+- Sort definitions take `field` (dot notation supported), `order` (`asc` / `desc`), and `compare` (`string` / `numeric` / `date`)
+- Opt-in and fully backward compatible: schemas without `filters` / `sort` / `pagination` behave exactly as before
+- A bundled default template (`templates/api.php`) renders external data cleanly when no custom template is provided
+
 ## Merge Mode (v1.5.0+)
 
 Combine multiple data sources into a single chronological list. Perfect for showing your site's announcements (WordPress) alongside your Zenn/note articles (RSS) on one page.

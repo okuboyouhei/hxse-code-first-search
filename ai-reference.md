@@ -436,6 +436,59 @@ $schemas['survey_results'] = [
 
 ---
 
+## 外部ソースのフィルタリング（v1.8.0+）
+
+`source: 'api' / 'rss' / 'xml'` のスキーマで `filters` / `sort` / `pagination` が使える。
+すべて**キャッシュ済みデータへのメモリ内処理**（array_filter / usort / array_slice）。絞り込み操作でリモートへの再フェッチは発生しない。
+
+**opt-in方式：** `filters` / `sort` / `pagination` のいずれかがスキーマにある場合のみ有効。いずれもない場合は従来どおり全件をテンプレートに渡す（後方互換）。
+
+```php
+$schemas['connpass_nagoya'] = [
+    'source'     => 'api',
+    'endpoint'   => 'https://connpass.com/api/v1/event/?prefecture=aichi&count=100',
+    'items_key'  => 'events',            // ラップされたJSONからリストを取り出す（ドット記法対応）
+    'cache_mode' => 'static',
+    'cache'      => 3600,
+    'filters'    => [
+        // search: 指定フィールド横断の部分一致（search_fields省略時はアイテム直下の全文字列フィールド）
+        [ 'key' => 'keyword', 'type' => 'search', 'label' => 'キーワード',
+          'search_fields' => [ 'title', 'catch' ] ],
+        // select: fieldの値と完全一致。'options' => 'auto' でデータから選択肢を自動生成
+        [ 'key' => 'area', 'type' => 'select', 'label' => 'エリア',
+          'field' => 'address', 'options' => 'auto' ],
+    ],
+    'sort' => [
+        // field: 対象フィールド / order: asc|desc / compare: string|numeric|date
+        [ 'key' => 'date_asc',  'label' => '開催日順', 'field' => 'started_at', 'order' => 'asc',  'compare' => 'date' ],
+        [ 'key' => 'date_desc', 'label' => '新しい順', 'field' => 'started_at', 'order' => 'desc', 'compare' => 'date' ],
+    ],
+    'pagination' => [
+        'per_page'   => 10,
+        'show_count' => true,
+        'show_pages' => true,
+    ],
+];
+```
+
+| キー | 型 | 説明 |
+|---|---|---|
+| `items_key` | string | ラップされたJSONペイロードからアイテムリストを取り出すキー（ドット記法対応、例: `'events'`、`'data.items'`） |
+| filters `type: 'search'` | - | `search_fields`（配列）を横断して部分一致。省略時はアイテム直下の全文字列フィールドが対象 |
+| filters `type: 'select'` | - | `field` の値と完全一致。`ui: 'radio'` も可。`options` は `[['value'=>'','label'=>''],...]` または `'auto'`（データのユニーク値から自動生成） |
+| sort `field` | string | ソート対象フィールド（ドット記法対応） |
+| sort `order` | string | `'asc'` / `'desc'`（デフォルト desc） |
+| sort `compare` | string | `'string'`（デフォルト）/ `'numeric'` / `'date'`（strtotimeで比較） |
+| pagination | array | `per_page` / `show_count` / `show_pages`。wp_queryモードと同じUI（外部ソースは `pager` モードのみ。`loadmore` は非対応） |
+
+**フィールド指定はドット記法対応：** `'field' => 'series.title'` のようにネストした値を参照できる。
+
+**注意：** 外部ソースのフィルタは取得済みデータに対する後処理のため、`endpoint` 側のクエリパラメータ（APIネイティブの検索）とは独立している。大量データはAPI側で絞ってから渡すのが望ましい（例: connpassなら `count` や `prefecture` をendpointに含める）。
+
+**デフォルトテンプレート（v1.8.0+）：** スキーマに `template` 指定がなく、テーマにも `hxse/api.php` がない場合、同梱の `templates/api.php` が使われる（title / link / description / pubDate を持つアイテムをリスト表示、それ以外はスカラー値の定義リスト表示）。従来のJSONデバッグ出力はテンプレートが一切見つからない場合のみ。
+
+---
+
 ## マージモード（sources, v1.5.0+）
 
 複数のデータソース（WordPress投稿・RSS・API・XML）を1つの時系列リストに統合する。
