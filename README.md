@@ -188,6 +188,23 @@ $schemas['mixed_news'] = [
 
 Each source is normalized to a common format (`title` / `link` / `date` / `excerpt` / `source` / `raw`) and merged by date. The `label` appears as a badge so readers can tell each item's origin. API/XML sources can map their keys via the `map` key.
 
+### Filtering Merged Lists (v1.9.0+)
+
+Add `filters`, `sort`, or `pagination` to a merge-mode schema and the merged list becomes interactive — same opt-in mechanism as external sources (v1.8.0). Since merged items are normalized, filter and sort fields target `title` / `link` / `date` / `excerpt` / `source`:
+
+```php
+'filters' => [
+    [ 'key' => 'kw',  'type' => 'search', 'label' => 'Keyword', 'search_fields' => [ 'title', 'excerpt' ] ],
+    [ 'key' => 'src', 'type' => 'select', 'label' => 'Source', 'field' => 'source', 'options' => 'auto' ],
+],
+'sort' => [
+    [ 'key' => 'date_desc', 'label' => 'Newest', 'field' => 'date', 'order' => 'desc', 'compare' => 'date' ],
+],
+'pagination' => [ 'per_page' => 10, 'show_count' => true, 'show_pages' => true ],
+```
+
+The `select` filter on `source` with `'options' => 'auto'` gives visitors a per-source filter generated from your source labels. Everything runs in memory against merged cached data — filter interactions never re-fetch the feeds.
+
 ---
 
 ## Static JSON Caching (v1.2.0+)

@@ -4,7 +4,7 @@ Tags: search, filter, ajax, shortcode, custom post type
 Requires at least: 6.0
 Tested up to: 7.0
 Requires PHP: 7.4
-Stable tag: 1.8.0
+Stable tag: 1.9.0
 License: GPL-2.0-or-later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -96,6 +96,12 @@ Create `hxse/your-template.php` in your theme directory and specify it in the sc
 Yes. Use `type: 'meta'` with the appropriate `meta_key`.
 
 == Changelog ==
+
+= 1.9.0 =
+* Added: Filter, sort, and pagination support for merged mode (`sources`) — the v1.8.0 external-source filter UI now works on merged multi-source data (opt-in: enabled when `filters`, `sort`, or `pagination` is present in the schema)
+* Added: REST endpoint handling for merged-mode schemas — filter interactions and pager navigation now update results without page reloads, same as other modes
+* Note: Merged items are normalized to a common shape (`title` / `link` / `date` / `excerpt` / `source`), so filters and sort definitions target these fields — e.g. a `select` filter on `source` lets visitors narrow results to one feed
+* Note: All filtering runs in memory against merged cached data. No remote re-fetches on filter interactions. Schemas without `filters` / `sort` / `pagination` behave exactly as before.
 
 = 1.8.0 =
 * Added: Filter UI for external sources (`api` / `rss` / `xml`) — `search` and `select` filter types now work on fetched data (opt-in: enabled when `filters`, `sort`, or `pagination` is present in the schema)

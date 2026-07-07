@@ -531,6 +531,36 @@ API/XMLは `map` キーで応答のキーを共通フォーマットにマッピ
 'map' => [ 'title' => 'name', 'link' => 'url', 'date' => 'created_at' ],
 ```
 
+### マージモードのフィルター・ソート・ページネーション（v1.9.0+）
+
+スキーマに `filters` / `sort` / `pagination` のいずれかを追加すると対話モードになる（opt-in、外部単一ソースのv1.8.0と同じ仕組み）。マージ済みアイテムは正規化済みのため、フィルターやソートの対象フィールドは **`title` / `link` / `date` / `excerpt` / `source`** を指定する：
+
+```php
+$schemas['mixed_news'] = [
+    'sources' => [ /* 同上 */ ],
+    'orderby' => 'date',
+    'order'   => 'desc',
+    'cache'   => 600,
+
+    // v1.9.0+: 以下を追加すると絞り込み・ソートUI・ページャーが有効になる
+    'filters' => [
+        [ 'key' => 'kw',  'type' => 'search', 'label' => 'キーワード', 'search_fields' => [ 'title', 'excerpt' ] ],
+        [ 'key' => 'src', 'type' => 'select', 'label' => 'ソース', 'field' => 'source', 'options' => 'auto' ],
+    ],
+    'sort' => [
+        [ 'key' => 'date_desc', 'label' => '新しい順', 'field' => 'date', 'order' => 'desc', 'compare' => 'date' ],
+        [ 'key' => 'date_asc',  'label' => '古い順',   'field' => 'date', 'order' => 'asc',  'compare' => 'date' ],
+    ],
+    'pagination' => [ 'per_page' => 10, 'show_count' => true, 'show_pages' => true ],
+];
+```
+
+- `'field' => 'source'` + `'options' => 'auto'` で「ソース別絞り込み」（お知らせ / Zenn など）が自動生成される。ラベルは各ソースの `label` の値。
+- すべてキャッシュ済みマージデータへのメモリ内処理。絞り込み操作でリモート再フェッチは発生しない。
+- ページネーションはpagerモードのみ（loadmoreは外部ソース同様に非対応）。
+- `limit` はマージ直後（フィルター前）に適用される総件数の上限。ページネーションと併用する場合は通常不要。
+- `filters` / `sort` / `pagination` がないスキーマは従来どおり全件をテンプレートに渡す（後方互換）。
+
 ---
 
 ## iframe埋め込み（embed, v1.6.0+）

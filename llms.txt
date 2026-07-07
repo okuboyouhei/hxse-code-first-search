@@ -16,7 +16,7 @@ Author: Youhei Okubo (https://zenn.dev/youheiokubo)
 
 - Shortcode: `[hxse id="schema_key"]`
 - Filter: `hxse_schemas`
-- Filter types: search, taxonomy, meta, date, relation, select (external sources, v1.8.0+)
+- Filter types: search, taxonomy, meta, date, relation, select (external sources v1.8.0+, merged mode v1.9.0+)
 - UI types: select, radio, checkbox, range
 - Display modes: grid (default), list, table, custom
 - Grid columns: controlled via `columns` key (default: 3)
@@ -32,6 +32,12 @@ Author: Youhei Okubo (https://zenn.dev/youheiokubo)
 - AI-friendly: simple consistent schema structure
 
 ## Version history (latest first)
+
+### v1.9.0
+- Added: Filter / sort / pagination for merged mode (`sources`) — same opt-in mechanism as v1.8.0 external sources (`filters` / `sort` / `pagination` in schema)
+- Added: REST endpoint branch for merged-mode schemas — htmx filter interactions and pager work without page reloads
+- Note: Merged items are normalized, so filter/sort fields target `title` / `link` / `date` / `excerpt` / `source`; `'field' => 'source'` + `'options' => 'auto'` generates a per-source filter from source labels
+- Note: In-memory processing of merged cached data; no remote re-fetches. Pager mode only (no loadmore). Backward compatible.
 
 ### v1.8.0
 - Added: Filter UI for external sources (api / rss / xml) — `search` and `select` filter types work on fetched data (opt-in via `filters` / `sort` / `pagination` in schema)

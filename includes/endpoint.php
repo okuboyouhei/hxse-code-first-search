@@ -60,7 +60,18 @@ function hxse_rest_handler( WP_REST_Request $request ) {
 	$source = isset( $schema['source'] ) ? sanitize_key( $schema['source'] ) : 'wp_query';
 
 	ob_start();
-	if ( in_array( $source, array( 'api', 'rss', 'xml' ), true ) ) {
+	if ( ! empty( $schema['sources'] ) && is_array( $schema['sources'] ) ) {
+		// v1.9.0+: マージモードのフィルタ・ソート・ページネーション（キャッシュ済みデータへのメモリ内処理）
+		$items = hxse_fetch_merged_data( $schema );
+
+		if ( hxse_api_is_interactive( $schema ) ) {
+			$items = hxse_filter_api_items( $items, $schema, $params );
+			$items = hxse_sort_api_items( $items, $schema, $params );
+			hxse_render_api_page( $schema, $hxse_id, $items, $page );
+		} else {
+			hxse_render_merged_results( $schema, $hxse_id, $items );
+		}
+	} elseif ( in_array( $source, array( 'api', 'rss', 'xml' ), true ) ) {
 		$api_data = hxse_fetch_api_data( $schema );
 
 		if ( hxse_api_is_interactive( $schema ) && ! is_wp_error( $api_data ) ) {

@@ -61,10 +61,28 @@ function hxse_shortcode( $atts ) {
 			. ' data-hxse-id="' . esc_attr( $hxse_id ) . '"'
 			. ' data-prefix="' . esc_attr( $prefix ) . '">';
 
-		echo '<div id="hxse-results-' . esc_attr( $hxse_id ) . '" class="hxse-results-wrap">';
 		$merged_data = hxse_fetch_merged_data( $schema );
-		hxse_render_merged_results( $schema, $hxse_id, $merged_data );
-		echo '</div>';
+
+		if ( hxse_api_is_interactive( $schema ) ) {
+			// v1.9.0+: マージモードでもフィルタ・ソート・ページネーション対応
+			// マージ済みデータは title / link / date / excerpt / source に正規化済み
+			$schema['_api_items'] = $merged_data; // 'options' => 'auto' の選択肢生成用（絞り込み前）
+
+			$endpoint = rest_url( 'hxse/v1/search' );
+			hxse_render_filters( $schema, $hxse_id, $current_params, $endpoint );
+
+			$merged_data = hxse_filter_api_items( $merged_data, $schema, $current_params );
+			$merged_data = hxse_sort_api_items( $merged_data, $schema, $current_params );
+
+			echo '<div id="hxse-results-' . esc_attr( $hxse_id ) . '" class="hxse-results-wrap">';
+			hxse_render_api_page( $schema, $hxse_id, $merged_data, $page );
+			echo '</div>';
+		} else {
+			// 従来どおり: 取得→テンプレートに全件渡す
+			echo '<div id="hxse-results-' . esc_attr( $hxse_id ) . '" class="hxse-results-wrap">';
+			hxse_render_merged_results( $schema, $hxse_id, $merged_data );
+			echo '</div>';
+		}
 
 		echo '</div>';
 		return ob_get_clean();

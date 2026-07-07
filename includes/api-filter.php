@@ -381,7 +381,12 @@ function hxse_render_api_page( $schema, $hxse_id, $items, $page ) {
 		? array_slice( $items, ( $page - 1 ) * $per_page, $per_page )
 		: $items;
 
-	hxse_render_api_results( $schema, $hxse_id, $page_items );
+	// マージモード（sources）は正規化済みデータ用のmergedテンプレートで描画（v1.9.0+）
+	if ( ! empty( $schema['sources'] ) && is_array( $schema['sources'] ) ) {
+		hxse_render_merged_results( $schema, $hxse_id, $page_items );
+	} else {
+		hxse_render_api_results( $schema, $hxse_id, $page_items );
+	}
 
 	// ページャー
 	if ( $per_page > 0 && ! empty( $pagination['show_pages'] ) && $total_pages > 1 ) {
