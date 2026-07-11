@@ -456,7 +456,13 @@ function hxse_do_remote_fetch( array $schema, string $endpoint, string $source =
 		$endpoint = add_query_arg( '_token', sanitize_text_field( $schema['token'] ), $endpoint );
 	}
 
-	$response = wp_remote_get( $endpoint, array( 'timeout' => 10 ) );
+	$response = wp_remote_get(
+		$endpoint,
+		array(
+			'timeout'             => 10,
+			'reject_unsafe_urls'  => true, // SSRF対策: 内部IP・不正ポートへのリクエストを拒否（v1.9.1、HXFE v1.4.6と同一の恒久対策）
+		)
+	);
 
 	if ( is_wp_error( $response ) ) {
 		return $response;

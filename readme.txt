@@ -4,7 +4,7 @@ Tags: search, filter, ajax, shortcode, custom post type
 Requires at least: 6.0
 Tested up to: 7.0
 Requires PHP: 7.4
-Stable tag: 1.9.0
+Stable tag: 1.9.1
 License: GPL-2.0-or-later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -96,6 +96,9 @@ Create `hxse/your-template.php` in your theme directory and specify it in the sc
 Yes. Use `type: 'meta'` with the appropriate `meta_key`.
 
 == Changelog ==
+
+= 1.9.1 =
+* Security: Remote API/RSS fetch now uses `reject_unsafe_urls` to block requests to internal IPs and unsafe ports (SSRF hardening, series-wide rollout of the fix introduced in HXFE 1.4.6)
 
 = 1.9.0 =
 * Added: Filter, sort, and pagination support for merged mode (`sources`) — the v1.8.0 external-source filter UI now works on merged multi-source data (opt-in: enabled when `filters`, `sort`, or `pagination` is present in the schema)
