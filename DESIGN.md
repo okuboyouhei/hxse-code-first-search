@@ -160,6 +160,10 @@ add_action( 'wp_enqueue_scripts', function() {
 | `.hxse-count` | Result count display |
 | `.hxse-table` | Table element |
 | `.hxse-table-link` | Title link in table |
+| `.hxse-static` | Static-mode root modifier on `.hxse-wrap` (Distan build) |
+| `.hxse-filters--static` | Static-mode filter form (no htmx) |
+| `.hxse-item[hidden]` | Baked item hidden by client-side filter/pagination |
+| `.hxse-static-pager` | Static-mode pagination wrapper (reuses `.hxse-pager` classes) |
 
 ---
 

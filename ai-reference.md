@@ -613,6 +613,62 @@ $schemas['lp_news'] = [
 
 ---
 
+## 静的モード（静的サイト / Distan, v2.0.0+）
+
+Distan などの静的サイトジェネレーターで書き出したときに、検索を止めないためのモード。通常の検索は htmx → REST（`hxse/v1/search`）→ `WP_Query` で動くが、静的化すると本番に WordPress がいなくなるため REST が使えない。静的モードは htmx / REST を使わず、全アイテムを `data-*` 属性つきで焼き込み、同梱の素の JS がブラウザ内で絞り込む。REST も別サーバーも不要で `file://` でも動く。
+
+### 起動
+
+- **自動**：Distan の生成リクエストに載る `X-Distan-Render` ヘッダを検知して切り替わる（設定不要）。
+- **明示**：スキーマに `'static' => true`（`false` で無効）。
+- **フィルタ**：`hxse_static_active`（有効/無効の最終決定）、`hxse_static_max_items`（全件焼き込みの上限。既定 500）。
+
+```php
+$schemas['latest'] = [
+    'post_type'  => 'post',
+    'display'    => 'grid',
+    // 'static' => true,   // ローカル検証用。本番はヘッダで自動判定
+    'filters'    => [
+        [ 'key' => 'q',   'type' => 'search',   'label' => 'キーワード' ],
+        [ 'key' => 'cat', 'type' => 'taxonomy', 'taxonomy' => 'category', 'label' => 'カテゴリー' ],
+    ],
+    'sort'       => [
+        [ 'key' => 'date_desc', 'label' => '新しい順' ],
+        [ 'key' => 'title_asc', 'label' => 'タイトル順' ],  // 静的モードで並び替え（v2.2.0+）
+    ],
+    'pagination' => [ 'per_page' => 12 ],   // 静的モードでもクライアント側で有効（v2.1.0+）
+];
+```
+
+### 対応範囲
+
+| 項目 | 静的モードでの扱い |
+|---|---|
+| `search` / `taxonomy` / `meta`(select系) | ブラウザ内で絞り込み対応 |
+| sort（並び替え, v2.2.0+） | 対応。wp_query の固定キー `date_desc` / `date_asc` / `title_asc` / `title_desc` / `menu_order` をクライアントで再現。既定は先頭定義。フィルタ・ページングと合成し、変更で1ページ目へ戻る |
+| `range` / `date` / `relation` / `table`表示 | 未対応（コントロールは出さない） |
+| ページネーション（v2.1.0+） | クライアント側で対応。`pagination` の `per_page` / `range` / ラベル / `count_format` を尊重。フィルタで絞ってからページ分割し、フィルタ変更で1ページ目へ戻る。`mode: 'none'` か `per_page: 0` で全件1ページ |
+| 外部ソース（api / rss / xml / sources） | フィルタなしのスナップショットとして焼く（対話機能は落とす） |
+| 上限超過（`hxse_static_max_items`、既定500） | クライアント絞り込みを諦め、素のページ送り一覧に縮退（HTMLコメントで理由を記録） |
+
+### 焼き込まれる属性（クライアント絞り込み用）
+
+- `data-hxse-hay`：検索用テキスト（タイトル＋抜粋、`search_fields` のメタも含む）
+- `data-hxse-f-{key}`：タクソノミーは term_id、メタはメタ値（スペース区切り）
+- `data-hxse-s-{field}`：並び替え用（`date`=投稿タイムスタンプ / `title`=タイトル / `menu`=menu_order）。`sort` が定義されている場合のみ、必要な項目だけ焼く
+
+### 実装上の注意（コードを触るAI向け）
+
+- **インライン JS は `wp_footer` で出力する。** `the_content` 内に生の `<script>` を出すと wpautop / wptexturize がクォート・改行を壊し `SyntaxError` になる。静的モードのスクリプトは `wp_footer`（本文フィルタの外）で出す。
+- **静的時は htmx / hxse.js を enqueue しない。** REST 依存で静的サイトでは動かず、ジェネレーターが無駄なファイルを運ぶだけになるため。
+- **Distan の URL 書き換えは `hx-get` を対象にしない**（`href` / `src` / `action` / `poster` / `data-src` / `srcset` などのみ）。書き換えに頼らず、静的モードでは最初から `hx-get` を出さない。
+
+### 使いどころ
+
+有界セット（例：トップページの最新◯件の絞り込み）向け。5年分・数百件規模の記事アーカイブには不向き（全件を焼くため重くなり、上限で縮退する）。アーカイブの一覧・ページ送りは WordPress 標準 ＋ Distan の静的化に任せる。
+
+---
+
 ## Related files
 
 | File | Purpose |

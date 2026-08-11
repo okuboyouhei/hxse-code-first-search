@@ -211,7 +211,9 @@ function hxse_render_static( $schema, $hxse_id, $current_params = array() ) {
  * @return bool 出力したフィルターが1つでもあれば true
  */
 function hxse_render_static_filters( $schema, $hxse_id ) {
-	if ( empty( $schema['filters'] ) || ! is_array( $schema['filters'] ) ) {
+	$has_filters = ! empty( $schema['filters'] ) && is_array( $schema['filters'] );
+	$has_sort    = ! empty( $schema['sort'] ) && is_array( $schema['sort'] );
+	if ( ! $has_filters && ! $has_sort ) {
 		return false;
 	}
 
@@ -232,7 +234,8 @@ function hxse_render_static_filters( $schema, $hxse_id ) {
 	echo '<div class="hxse-filter-body" id="hxse-filter-body-' . esc_attr( $hxse_id ) . '">';
 	echo '<div class="hxse-filters-row">';
 
-	foreach ( $schema['filters'] as $filter ) {
+	if ( $has_filters ) {
+		foreach ( $schema['filters'] as $filter ) {
 		if ( empty( $filter['key'] ) || empty( $filter['type'] ) ) {
 			continue;
 		}
@@ -273,6 +276,28 @@ function hxse_render_static_filters( $schema, $hxse_id ) {
 				break;
 		}
 
+		echo '</div>';
+		$rendered++;
+		}
+	}
+
+	// 並び替え（sort）— wp_query の固定キー（date/title/menu_order）をクライアントで再現。
+	if ( $has_sort ) {
+		echo '<div class="hxse-filter hxse-sort hxse-sort--static" data-hxse-role="sort">';
+		echo '<label class="hxse-filter-label">' . esc_html__( '並び順', 'hxse-code-first-search' ) . '</label>';
+		echo '<select class="hxse-select hxse-sort-select" data-hxse-sort-control>';
+		$first = true;
+		foreach ( $schema['sort'] as $so ) {
+			if ( empty( $so['key'] ) ) {
+				continue;
+			}
+			$sk  = sanitize_key( $so['key'] );
+			$slb = isset( $so['label'] ) ? sanitize_text_field( $so['label'] ) : $sk;
+			// 先頭定義が既定（サーバーが初期描画で適用済み）なので selected にしておく。
+			echo '<option value="' . esc_attr( $sk ) . '"' . ( $first ? ' selected' : '' ) . '>' . esc_html( $slb ) . '</option>';
+			$first = false;
+		}
+		echo '</select>';
 		echo '</div>';
 		$rendered++;
 	}
@@ -417,6 +442,31 @@ function hxse_static_item_attrs( $schema ) {
 	$haystack = wp_strip_all_tags( implode( ' ', array_filter( $haystack_parts ) ) );
 	$attrs    = ' data-hxse-hay="' . esc_attr( $haystack ) . '"' . $attrs;
 
+	// 並び替え用の値（sort が定義されている場合のみ、必要な項目だけ焼く）。
+	// wp_query の固定キー: date_* → date, title_* → title, menu_order → menu。
+	if ( ! empty( $schema['sort'] ) && is_array( $schema['sort'] ) ) {
+		$need = array();
+		foreach ( $schema['sort'] as $so ) {
+			$sk = isset( $so['key'] ) ? sanitize_key( $so['key'] ) : '';
+			if ( 0 === strpos( $sk, 'date' ) ) {
+				$need['date'] = true;
+			} elseif ( 0 === strpos( $sk, 'title' ) ) {
+				$need['title'] = true;
+			} elseif ( 'menu_order' === $sk ) {
+				$need['menu'] = true;
+			}
+		}
+		if ( isset( $need['date'] ) ) {
+			$attrs .= ' data-hxse-s-date="' . esc_attr( (string) get_post_timestamp( $post_id ) ) . '"';
+		}
+		if ( isset( $need['title'] ) ) {
+			$attrs .= ' data-hxse-s-title="' . esc_attr( wp_strip_all_tags( get_the_title( $post_id ) ) ) . '"';
+		}
+		if ( isset( $need['menu'] ) ) {
+			$attrs .= ' data-hxse-s-menu="' . esc_attr( (string) (int) get_post_field( 'menu_order', $post_id ) ) . '"';
+		}
+	}
+
 	return $attrs;
 }
 
@@ -551,6 +601,32 @@ function hxse_print_static_script() {
 		html += '</ul>';
 		nav.innerHTML = html;
 	}
+	// 並び替え（wp_query の固定キー → フィールドと向き）
+	var SORT_MAP = {
+		date_desc:  ['date',  'desc'],
+		date_asc:   ['date',  'asc'],
+		title_asc:  ['title', 'asc'],
+		title_desc: ['title', 'desc'],
+		menu_order: ['menu',  'asc']
+	};
+	function sortCmp(a, b, field, dir){
+		var va = a.getAttribute('data-hxse-s-' + field) || '';
+		var vb = b.getAttribute('data-hxse-s-' + field) || '';
+		var r;
+		if(field === 'title'){ r = va.localeCompare(vb, 'ja'); }
+		else { r = (parseFloat(va) || 0) - (parseFloat(vb) || 0); }
+		return dir === 'asc' ? r : -r;
+	}
+	function sortDom(wrap){
+		var key = wrap.__hxseSort;
+		var def = key && SORT_MAP[key];
+		if(!def) return;
+		var items = Array.prototype.slice.call(wrap.querySelectorAll('.hxse-item'));
+		if(!items.length) return;
+		items.sort(function(a, b){ return sortCmp(a, b, def[0], def[1]); });
+		var parent = items[0].parentNode;
+		if(parent){ items.forEach(function(n){ parent.appendChild(n); }); }
+	}
 	function apply(wrap){
 		var form  = wrap.querySelector('.hxse-filters--static');
 		var c     = collect(form);
@@ -595,9 +671,20 @@ function hxse_print_static_script() {
 	}
 	function bind(wrap){
 		var form = wrap.querySelector('.hxse-filters--static');
+		// 並び替えの既定（先頭定義＝サーバーが初期描画で適用済み）。初期は DOM を触らない。
+		var sortSel = form && form.querySelector('[data-hxse-sort-control]');
+		if(sortSel){ wrap.__hxseSort = sortSel.value; }
 		if(form){
 			form.addEventListener('input', function(){ wrap.__hxsePage = 1; apply(wrap); });
-			form.addEventListener('change', function(){ wrap.__hxsePage = 1; apply(wrap); });
+			form.addEventListener('change', function(e){
+				// 並び替えセレクトが変わったら DOM を並べ替えてから適用
+				if(sortSel && (e.target === sortSel || (e.target.closest && e.target.closest('[data-hxse-sort-control]')))){
+					wrap.__hxseSort = sortSel.value;
+					sortDom(wrap);
+				}
+				wrap.__hxsePage = 1;
+				apply(wrap);
+			});
 			var reset = form.querySelector('.hxse-static-reset');
 			if(reset){
 				reset.addEventListener('click', function(){
@@ -606,6 +693,8 @@ function hxse_print_static_script() {
 						else if(el.tagName === 'SELECT'){ el.selectedIndex = 0; }
 						else { el.value = ''; }
 					});
+					// リセットで並び順も既定（先頭）に戻す
+					if(sortSel){ wrap.__hxseSort = sortSel.value; sortDom(wrap); }
 					wrap.__hxsePage = 1; apply(wrap);
 				});
 			}

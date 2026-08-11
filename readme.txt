@@ -4,7 +4,7 @@ Tags: search, filter, ajax, shortcode, custom post type
 Requires at least: 6.0
 Tested up to: 7.0
 Requires PHP: 7.4
-Stable tag: 2.1.0
+Stable tag: 2.2.0
 License: GPL-2.0-or-later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -96,6 +96,10 @@ Create `hxse/your-template.php` in your theme directory and specify it in the sc
 Yes. Use `type: 'meta'` with the appropriate `meta_key`.
 
 == Changelog ==
+
+= 2.2.0 =
+* Added: Sort in static (Distan) mode — the `sort` schema (wp_query keys `date_desc` / `date_asc` / `title_asc` / `title_desc` / `menu_order`) is reproduced client-side; composes with filters and pagination, resets to page 1 on change
+* Docs: Documented static-site mode, client-side pagination, and sort across the bundled reference docs (ai-reference.md, llms.txt, HXSE-manual.md, DESIGN.md)
 
 = 2.1.0 =
 * Added: Client-side pagination in static (Distan) mode — honors the schema's `pagination` settings (`per_page`, `range`, prev/next/first/last labels, `count_format`); no server or REST needed

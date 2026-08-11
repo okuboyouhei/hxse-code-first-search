@@ -29,9 +29,24 @@ Author: Youhei Okubo (https://zenn.dev/youheiokubo)
 - htmx bundled (no jQuery required)
 - Assets loaded only on pages with [hxse] shortcode
 - No database for schema — code only
+- Static-site mode (Distan, v2.0.0+): htmx/REST-free client-side filtering; auto-detected via `X-Distan-Render`, or force with `'static' => true`; client-side pagination v2.1.0+ (honors `pagination`, works with/without filters); client-side sort v2.2.0+ (honors `sort`: `date_*` / `title_*` / `menu_order`)
 - AI-friendly: simple consistent schema structure
 
 ## Version history (latest first)
+
+### v2.2.0
+- Added: Sort in static mode — the `sort` schema (wp_query keys `date_desc` / `date_asc` / `title_asc` / `title_desc` / `menu_order`) is reproduced client-side; composes with filters and pagination, resets to page 1 on change
+
+### v2.1.0
+- Added: Client-side pagination in static mode — honors the schema's `pagination` (`per_page` / `range` / labels / `count_format`); works with or without filters, resets to page 1 on filter change; `pagination.mode: 'none'` (or `per_page: 0`) renders all on one page
+- Fixed: Static-mode inline script is now printed via `wp_footer` instead of inside `the_content`, so content filters (wpautop / wptexturize) can no longer break the JS
+
+### v2.0.0
+- Added: Static-site (Distan) mode — when a page is statically generated, HXSE serves an htmx/REST-free variant so search keeps working after WordPress is removed from production
+- Added: Auto-detection via the `X-Distan-Render` request header (no config); force with `'static' => true|false` or the `hxse_static_active` filter
+- Added: Client-side filtering over baked items for `wp_query` sources (`search`, `taxonomy`, non-range `meta`) via `data-*` attributes; live count and no-results without a server
+- Added: `hxse_static_max_items` filter (default 500) — above the cap, static mode falls back to a plain paged list
+- Note: In static mode htmx and `hxse.js` are not enqueued; `range` / `date` / `relation` / sort / `table` are not reproduced; external `api` / `rss` / `xml` / `sources` are baked as a filter-less snapshot; `ai-reference.md` is relocated under `docs/` in the WordPress.org build
 
 ### v1.9.0
 - Added: Filter / sort / pagination for merged mode (`sources`) — same opt-in mechanism as v1.8.0 external sources (`filters` / `sort` / `pagination` in schema)
