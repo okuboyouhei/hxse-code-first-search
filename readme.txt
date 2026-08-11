@@ -4,7 +4,7 @@ Tags: search, filter, ajax, shortcode, custom post type
 Requires at least: 6.0
 Tested up to: 7.0
 Requires PHP: 7.4
-Stable tag: 1.9.1
+Stable tag: 2.0.0
 License: GPL-2.0-or-later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -96,6 +96,14 @@ Create `hxse/your-template.php` in your theme directory and specify it in the sc
 Yes. Use `type: 'meta'` with the appropriate `meta_key`.
 
 == Changelog ==
+
+= 2.0.0 =
+* Added: Static-site (Distan) mode — when a page is rendered by a static site generator, HXSE now serves a self-contained, htmx/REST-free variant so search keeps working after WordPress is removed from production
+* Added: Auto-detection of Distan generation via the `X-Distan-Render` request header (no configuration); force it per schema with `'static' => true|false`, or globally via the `hxse_static_active` filter
+* Added: Client-side filtering over the baked result set for `wp_query` sources — `search`, `taxonomy`, and non-range `meta` filters run in the browser against `data-*` attributes; live count and no-results are updated without a server
+* Added: `hxse_static_max_items` filter (default 500) — above the cap, static mode degrades to a plain paged list instead of shipping an oversized dataset to the browser
+* Note: In static mode htmx and `hxse.js` are not enqueued (they depend on the REST endpoint that a static site does not have); only the stylesheet is loaded
+* Note: `range` / `date` / `relation` filters, sort, and the `table` display are not reproduced client-side in this release; external `api` / `rss` / `xml` / `sources` are baked as a filter-less snapshot
 
 = 1.9.1 =
 * Security: Remote API/RSS fetch now uses `reject_unsafe_urls` to block requests to internal IPs and unsafe ports (SSRF hardening, series-wide rollout of the fix introduced in HXFE 1.4.6)

@@ -54,6 +54,12 @@ function hxse_shortcode( $atts ) {
 
 	$source = isset( $schema['source'] ) ? sanitize_key( $schema['source'] ) : 'wp_query';
 
+	// --- 静的モード（Distan などの静的サイト生成時） ---
+	// htmx/REST を使わず、全件を焼き込んでクライアント内で絞り込む。
+	if ( function_exists( 'hxse_static_active' ) && hxse_static_active( $schema, $hxse_id ) ) {
+		return hxse_render_static( $schema, $hxse_id, $current_params );
+	}
+
 	// --- マージモード（複数ソース） ---
 	if ( ! empty( $schema['sources'] ) && is_array( $schema['sources'] ) ) {
 		ob_start();

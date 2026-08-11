@@ -3,7 +3,7 @@
  * Plugin Name: HXSE — Code-First Search
  * Plugin URI:  https://github.com/okuboyouhei/hxse-code-first-search
  * Description: Code-first search & filter for WordPress. Define filters with PHP arrays, output with a shortcode. Powered by htmx — no page reloads.
- * Version:     1.9.1
+ * Version:     2.0.0
  * Author:      Youhei Okubo
  * Author URI:  https://zenn.dev/youheiokubo
  * License:     GPL-2.0-or-later
@@ -15,7 +15,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'HXSE_VERSION',    '1.9.1' );
+define( 'HXSE_VERSION',    '2.0.0' );
 define( 'HXSE_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'HXSE_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
 
@@ -28,6 +28,7 @@ require_once HXSE_PLUGIN_DIR . 'includes/pagination.php';
 require_once HXSE_PLUGIN_DIR . 'includes/endpoint.php';
 require_once HXSE_PLUGIN_DIR . 'includes/shortcode.php';
 require_once HXSE_PLUGIN_DIR . 'includes/embed.php';
+require_once HXSE_PLUGIN_DIR . 'includes/distan.php';
 require_once HXSE_PLUGIN_DIR . 'includes/admin.php';
 
 add_action( 'wp_enqueue_scripts', 'hxse_enqueue_assets' );
@@ -48,24 +49,29 @@ function hxse_enqueue_assets() {
 		return;
 	}
 
-	if ( ! wp_script_is( 'hx-htmx', 'registered' ) ) {
-		wp_register_script(
-			'hx-htmx',
-			HXSE_PLUGIN_URL . 'assets/htmx.min.js',
-			array(),
-			'2.0.10',
+	// 静的サイト（Distan）生成中は htmx / hxse.js を読み込まない。
+	// これらは REST エンドポイント頼みで、静的サイトでは動かない上に
+	// ジェネレーターが無駄なファイルを運んでしまうため。CSSだけ残す。
+	if ( ! hxse_is_distan_render() ) {
+		if ( ! wp_script_is( 'hx-htmx', 'registered' ) ) {
+			wp_register_script(
+				'hx-htmx',
+				HXSE_PLUGIN_URL . 'assets/htmx.min.js',
+				array(),
+				'2.0.10',
+				true
+			);
+		}
+		wp_enqueue_script( 'hx-htmx' );
+
+		wp_enqueue_script(
+			'hxse',
+			HXSE_PLUGIN_URL . 'assets/hxse.js',
+			array( 'hx-htmx' ),
+			HXSE_VERSION,
 			true
 		);
 	}
-	wp_enqueue_script( 'hx-htmx' );
-
-	wp_enqueue_script(
-		'hxse',
-		HXSE_PLUGIN_URL . 'assets/hxse.js',
-		array( 'hx-htmx' ),
-		HXSE_VERSION,
-		true
-	);
 
 	wp_enqueue_style(
 		'hxse',

@@ -923,3 +923,15 @@
 .hxse-api-item-fields dd {
 	margin: 0;
 }
+
+/* =============================================
+   静的モード（Distan など静的サイト向け）
+   htmx/REST を使わずクライアント内で絞り込むときの体裁。
+   ============================================= */
+.hxse-item[hidden] {
+	display: none !important;
+}
+
+.hxse-static .hxse-filters--static .hxse-filters-actions {
+	margin-top: 0.75rem;
+}
