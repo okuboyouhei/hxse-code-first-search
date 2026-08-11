@@ -4,7 +4,7 @@ Tags: search, filter, ajax, shortcode, custom post type
 Requires at least: 6.0
 Tested up to: 7.0
 Requires PHP: 7.4
-Stable tag: 2.0.0
+Stable tag: 2.1.0
 License: GPL-2.0-or-later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -96,6 +96,11 @@ Create `hxse/your-template.php` in your theme directory and specify it in the sc
 Yes. Use `type: 'meta'` with the appropriate `meta_key`.
 
 == Changelog ==
+
+= 2.1.0 =
+* Added: Client-side pagination in static (Distan) mode — honors the schema's `pagination` settings (`per_page`, `range`, prev/next/first/last labels, `count_format`); no server or REST needed
+* Added: Pagination works with or without filters — filters narrow the set first, then results are paged, and the page resets to 1 when a filter changes
+* Note: Set `pagination.mode` to `none` (or `per_page` to 0) to render all items on a single page, as in 2.0.0; above `hxse_static_max_items` the plain-list fallback still applies
 
 = 2.0.0 =
 * Added: Static-site (Distan) mode — when a page is rendered by a static site generator, HXSE now serves a self-contained, htmx/REST-free variant so search keeps working after WordPress is removed from production

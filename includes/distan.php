@@ -95,11 +95,34 @@ function hxse_render_static( $schema, $hxse_id, $current_params = array() ) {
 	$columns = isset( $schema['columns'] ) ? absint( $schema['columns'] ) : 0;
 	$style   = $columns ? ' style="--hxse-columns:' . $columns . '"' : '';
 
+	// ページャ設定（既存の pagination スキーマを静的モードでも尊重）。
+	// mode が 'none' か per_page<=0 のときはページ送りせず全件表示（従来どおり）。
+	$pager_attr = '';
+	$pag        = isset( $schema['pagination'] ) && is_array( $schema['pagination'] ) ? $schema['pagination'] : array();
+	$pmode      = isset( $pag['mode'] ) ? sanitize_key( $pag['mode'] ) : 'pager';
+	$pper       = isset( $pag['per_page'] ) ? absint( $pag['per_page'] ) : 12;
+	if ( 'none' !== $pmode && $pper > 0 ) {
+		$pager_cfg  = array(
+			'pageSize'    => $pper,
+			'range'       => isset( $pag['range'] ) ? absint( $pag['range'] ) : 2,
+			'labels'      => array(
+				'prev'  => isset( $pag['label_prev'] ) ? (string) $pag['label_prev'] : __( '前へ', 'hxse-code-first-search' ),
+				'next'  => isset( $pag['label_next'] ) ? (string) $pag['label_next'] : __( '次へ', 'hxse-code-first-search' ),
+				'first' => isset( $pag['label_first'] ) ? (string) $pag['label_first'] : '',
+				'last'  => isset( $pag['label_last'] ) ? (string) $pag['label_last'] : '',
+			),
+			'showCount'   => ! empty( $pag['show_count'] ),
+			'countFormat' => isset( $pag['count_format'] ) ? (string) $pag['count_format'] : '{total}件中 {from}〜{to}件を表示',
+		);
+		$pager_attr = ' data-hxse-pager="' . esc_attr( wp_json_encode( $pager_cfg ) ) . '"';
+	}
+
 	ob_start();
 	echo '<div class="hxse-wrap hxse-static" id="hxse-wrap-' . esc_attr( $hxse_id ) . '"'
 		. $style // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- controlled inline style with absint value
 		. ' data-hxse-id="' . esc_attr( $hxse_id ) . '"'
 		. ' data-hxse-static="1"'
+		. $pager_attr // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- esc_attr applied above
 		. ' data-prefix="' . esc_attr( $prefix ) . '">';
 
 	// --- 外部ソース（api / rss / xml / sources）: スナップショットを焼くだけ ---
@@ -403,11 +426,21 @@ function hxse_static_item_attrs( $schema ) {
  * file:// のダブルクリック運用でも確実に動くようにするため。
  */
 function hxse_render_static_script_once() {
-	static $done = false;
-	if ( $done ) {
+	static $hooked = false;
+	if ( $hooked ) {
 		return;
 	}
-	$done = true;
+	$hooked = true;
+	// 本文フィルタ（wpautop / wptexturize 等）がインラインJSのクォートや改行を
+	// 壊して SyntaxError になるのを避けるため、スクリプトは the_content の外＝
+	// wp_footer で出力する（生成物では Distan がこれも取り込む）。
+	add_action( 'wp_footer', 'hxse_print_static_script', 99 );
+}
+
+/**
+ * 静的モードのクライアントJS本体を出力する（wp_footer から1回だけ呼ばれる）。
+ */
+function hxse_print_static_script() {
 	?>
 <script>
 (function(){
@@ -430,6 +463,7 @@ function hxse_render_static_script_once() {
 	function collect(form){
 		var searches = [];
 		var facets = {}; // key -> [selected values]
+		if(!form) return { searches: searches, facets: facets };
 		form.querySelectorAll('.hxse-filter[data-hxse-role]').forEach(function(group){
 			var role = group.getAttribute('data-hxse-role');
 			var key  = group.getAttribute('data-hxse-key');
@@ -453,61 +487,142 @@ function hxse_render_static_script_once() {
 		});
 		return { searches: searches, facets: facets };
 	}
-	function apply(wrap){
-		var form = wrap.querySelector('.hxse-filters--static');
-		if(!form) return;
-		var c = collect(form);
-		var items = wrap.querySelectorAll('.hxse-item');
-		var shown = 0;
-		items.forEach(function(item){
-			var ok = true;
-			// テキスト検索（各語が haystack に部分一致・AND）
-			if(ok && c.searches.length){
-				var hay = norm(item.getAttribute('data-hxse-hay') || '');
-				for(var i=0;i<c.searches.length;i++){
-					if(hay.indexOf(c.searches[i]) === -1){ ok = false; break; }
-				}
+	function matchItem(item, c){
+		// テキスト検索（各語が haystack に部分一致・AND）
+		if(c.searches.length){
+			var hay = norm(item.getAttribute('data-hxse-hay') || '');
+			for(var i=0;i<c.searches.length;i++){
+				if(hay.indexOf(c.searches[i]) === -1) return false;
 			}
-			// ファセット（キーごとに OR、キー同士は AND）
-			if(ok){
-				for(var key in c.facets){
-					if(!Object.prototype.hasOwnProperty.call(c.facets, key)) continue;
-					var have = tokens(item.getAttribute('data-hxse-f-' + key) || '');
-					var want = c.facets[key];
-					var hit = false;
-					for(var j=0;j<want.length;j++){ if(have.indexOf(want[j]) !== -1){ hit = true; break; } }
-					if(!hit){ ok = false; break; }
-				}
-			}
-			item.hidden = !ok;
-			if(ok) shown++;
+		}
+		// ファセット（キーごとに OR、キー同士は AND）
+		for(var key in c.facets){
+			if(!Object.prototype.hasOwnProperty.call(c.facets, key)) continue;
+			var have = tokens(item.getAttribute('data-hxse-f-' + key) || '');
+			var want = c.facets[key];
+			var hit = false;
+			for(var j=0;j<want.length;j++){ if(have.indexOf(want[j]) !== -1){ hit = true; break; } }
+			if(!hit) return false;
+		}
+		return true;
+	}
+	function esc(s){
+		return String(s).replace(/[&<>"]/g, function(c){
+			return { '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;' }[c];
 		});
-		// 件数・no-results 更新
+	}
+	function getPagerCfg(wrap){
+		var raw = wrap.getAttribute('data-hxse-pager');
+		if(!raw) return null;
+		try { var cfg = JSON.parse(raw); if(cfg && cfg.pageSize > 0) return cfg; } catch(e){}
+		return null;
+	}
+	function fmtCount(cfg, total, from, to){
+		var f = (cfg && cfg.countFormat) ? cfg.countFormat : '{total}件中 {from}〜{to}件を表示';
+		return f.replace('{total}', total).replace('{from}', from).replace('{to}', to);
+	}
+	function renderPager(wrap, cfg, page, totalPages){
+		var nav = wrap.querySelector('.hxse-pager.hxse-static-pager');
+		if(totalPages <= 1){ if(nav) nav.parentNode.removeChild(nav); return; }
+		if(!nav){
+			nav = document.createElement('nav');
+			nav.className = 'hxse-pager hxse-static-pager';
+			nav.setAttribute('aria-label', 'ページナビゲーション');
+			var results = wrap.querySelector('.hxse-results-wrap');
+			if(results && results.parentNode){ results.parentNode.insertBefore(nav, results.nextSibling); }
+			else { wrap.appendChild(nav); }
+		}
+		var range = (cfg && typeof cfg.range === 'number') ? cfg.range : 2;
+		var L = (cfg && cfg.labels) ? cfg.labels : {};
+		function itm(p, label, current){
+			if(current){ return '<li class="hxse-pager-item is-current"><span class="hxse-pager-current">' + esc(label) + '</span></li>'; }
+			return '<li class="hxse-pager-item"><button type="button" class="hxse-pager-btn" data-page="' + p + '">' + esc(label) + '</button></li>';
+		}
+		function ell(){ return '<li class="hxse-pager-ellipsis"><span>...</span></li>'; }
+		var html = '<ul class="hxse-pager-list">';
+		if(L.first && page > 1) html += itm(1, L.first, false);
+		if(page > 1) html += itm(page - 1, L.prev || '前へ', false);
+		var start = Math.max(1, page - range), end = Math.min(totalPages, page + range);
+		if(start > 1){ html += itm(1, '1', false); if(start > 2) html += ell(); }
+		for(var i=start;i<=end;i++){ html += itm(i, String(i), i === page); }
+		if(end < totalPages){ if(end < totalPages - 1) html += ell(); html += itm(totalPages, String(totalPages), false); }
+		if(page < totalPages) html += itm(page + 1, L.next || '次へ', false);
+		if(L.last && page < totalPages) html += itm(totalPages, L.last, false);
+		html += '</ul>';
+		nav.innerHTML = html;
+	}
+	function apply(wrap){
+		var form  = wrap.querySelector('.hxse-filters--static');
+		var c     = collect(form);
+		var items = wrap.querySelectorAll('.hxse-item');
+		var matches = [];
+		items.forEach(function(item){ if(matchItem(item, c)) matches.push(item); });
+		var total = matches.length;
+		var cfg   = getPagerCfg(wrap);
+		var from = total ? 1 : 0, to = total;
+
+		if(cfg){
+			var totalPages = Math.max(1, Math.ceil(total / cfg.pageSize));
+			var page = wrap.__hxsePage || 1;
+			if(page > totalPages) page = totalPages;
+			if(page < 1) page = 1;
+			wrap.__hxsePage = page;
+			var startIdx = (page - 1) * cfg.pageSize;
+			var endIdx   = startIdx + cfg.pageSize;
+			// いったん全部隠し、絞り込み結果の該当ページ分だけ表示
+			items.forEach(function(item){ item.hidden = true; });
+			for(var i=startIdx; i < endIdx && i < total; i++){ matches[i].hidden = false; }
+			from = total ? startIdx + 1 : 0;
+			to   = Math.min(endIdx, total);
+			renderPager(wrap, cfg, page, totalPages);
+		} else {
+			items.forEach(function(item){ item.hidden = matches.indexOf(item) === -1; });
+		}
+
+		// 件数表示
 		var countEl = wrap.querySelector('.hxse-static-count');
 		if(countEl){
-			var total = countEl.getAttribute('data-hxse-total') || String(items.length);
+			var grandTotal = countEl.getAttribute('data-hxse-total') || String(items.length);
 			var active = c.searches.length || Object.keys(c.facets).length;
-			countEl.textContent = active ? (shown + ' / ' + total + '\u4ef6') : (total + '\u4ef6');
+			if(cfg && total > 0){
+				countEl.textContent = fmtCount(cfg, total, from, to);
+			} else {
+				countEl.textContent = active ? (total + ' / ' + grandTotal + '\u4ef6') : (grandTotal + '\u4ef6');
+			}
 		}
 		var empty = wrap.querySelector('.hxse-static-empty');
-		if(empty){ empty.hidden = shown !== 0; }
+		if(empty){ empty.hidden = total !== 0; }
 	}
 	function bind(wrap){
 		var form = wrap.querySelector('.hxse-filters--static');
-		if(!form) return;
-		form.addEventListener('input', function(){ apply(wrap); });
-		form.addEventListener('change', function(){ apply(wrap); });
-		var reset = form.querySelector('.hxse-static-reset');
-		if(reset){
-			reset.addEventListener('click', function(){
-				form.querySelectorAll('input, select').forEach(function(el){
-					if(el.type === 'checkbox' || el.type === 'radio'){ el.checked = false; }
-					else if(el.tagName === 'SELECT'){ el.selectedIndex = 0; }
-					else { el.value = ''; }
+		if(form){
+			form.addEventListener('input', function(){ wrap.__hxsePage = 1; apply(wrap); });
+			form.addEventListener('change', function(){ wrap.__hxsePage = 1; apply(wrap); });
+			var reset = form.querySelector('.hxse-static-reset');
+			if(reset){
+				reset.addEventListener('click', function(){
+					form.querySelectorAll('input, select').forEach(function(el){
+						if(el.type === 'checkbox' || el.type === 'radio'){ el.checked = false; }
+						else if(el.tagName === 'SELECT'){ el.selectedIndex = 0; }
+						else { el.value = ''; }
+					});
+					wrap.__hxsePage = 1; apply(wrap);
 				});
-				apply(wrap);
-			});
+			}
 		}
+		// ページャのクリック（フィルタの有無に関係なくバインド）
+		wrap.addEventListener('click', function(e){
+			var btn = e.target.closest('.hxse-pager-btn');
+			if(!btn || !wrap.contains(btn)) return;
+			var p = parseInt(btn.getAttribute('data-page'), 10);
+			if(!p) return;
+			wrap.__hxsePage = p;
+			apply(wrap);
+			var res = wrap.querySelector('.hxse-results-wrap');
+			if(res && res.scrollIntoView){ res.scrollIntoView({ block: 'start' }); }
+		});
+		// 初期適用（ページャ有効時は1ページ目に絞り込む）
+		apply(wrap);
 	}
 	// モバイル折りたたみトグル。実際の静的出力では htmx/hxse.js が読み込まれないので、
 	// その環境でだけ登録する（ローカルの 'static'=>true 検証時は hxse.js 側が処理するため二重発火を避ける）。
